@@ -67,6 +67,19 @@ premium-shop-bot/
    npm run dev    # watch rejimi (auto-restart)
    ```
 
+## ☁️ Render'ga deploy (web service, webhook)
+
+Bot Render **Web Service** sifatida ishlashga moslangan: HTTP server `PORT` ni tinglaydi, `/health` health-check beradi va Telegram yangiliklari **webhook** orqali keladi (polling emas). `WEBHOOK_DOMAIN` berilmasa, lokalda avtomatik **long polling** ga o'tadi.
+
+Qadamlar:
+1. Reponi GitHub'ga push qiling.
+2. Render Dashboard → **New → Blueprint** → shu reponi tanlang (`render.yaml` avtomatik o'qiladi).
+3. `sync: false` belgilangan maxfiy o'zgaruvchilarni to'ldiring: `BOT_TOKEN`, `BOT_USERNAME`, `ADMIN_IDS`, kanallar, `MONGODB_URI` (MongoDB Atlas tavsiya etiladi), `CARD_NUMBER`, `CARD_HOLDER`.
+4. `WEBHOOK_SECRET` avtomatik generatsiya qilinadi; `RENDER_EXTERNAL_URL` avtomatik beriladi va webhook domeni sifatida ishlatiladi — qo'lda `WEBHOOK_DOMAIN` kerak emas.
+5. Deploy tugagach bot webhookni avtomatik o'rnatadi (loglarda `WEBHOOK mode: https://...` ko'rinadi).
+
+> Eslatma: Render'ning bepul web service'lari faolsizlikda "uxlashi" mumkin. Doimiy ishlashi uchun pullik plan yoki tashqi uptime-ping (`/health`) ishlating.
+
 ## 💳 Telegram Stars
 
 `XTR` valyutasi va bo'sh `provider_token` bilan invoice yuboriladi. To'lov yakunlangach buyurtma avtomatik yopiladi. Boshqa usullar (Click/Payme/Uzum) admin tomonidan qo'lda tasdiqlanadi.

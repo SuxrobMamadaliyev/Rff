@@ -38,6 +38,19 @@ const config = {
     username: (process.env.BOT_USERNAME || '').replace('@', ''),
   },
 
+  // HTTP server / webhook settings (used on Render and other PaaS).
+  // When `webhookDomain` is set the bot runs in webhook mode behind an HTTP
+  // server bound to `port`; otherwise it falls back to long polling.
+  // Render automatically provides RENDER_EXTERNAL_URL, so no manual setup needed.
+  server: {
+    port: num(process.env.PORT, 3000),
+    webhookDomain: (process.env.WEBHOOK_DOMAIN || process.env.RENDER_EXTERNAL_URL || '')
+      .trim()
+      .replace(/\/$/, ''),
+    webhookPath: process.env.WEBHOOK_PATH || '/telegraf',
+    webhookSecret: process.env.WEBHOOK_SECRET || '',
+  },
+
   adminIds: parseAdminIds(process.env.ADMIN_IDS),
 
   channels: [

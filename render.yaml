@@ -1,0 +1,67 @@
+# =============================================================================
+#  Render Blueprint - Premium Shop Bot (web service, webhook mode)
+#  Docs: https://render.com/docs/blueprint-spec
+#
+#  Deploy:
+#    1. Push this repo to GitHub.
+#    2. Render Dashboard -> New -> Blueprint -> select this repo.
+#    3. Fill the env vars marked `sync: false` (secrets) in the dashboard.
+#       RENDER_EXTERNAL_URL is injected automatically and used as the webhook
+#       domain, so no manual WEBHOOK_DOMAIN is required.
+# =============================================================================
+services:
+  - type: web
+    name: premium-shop-bot
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NODE_ENV
+        value: production
+      # --- Telegram ---
+      - key: BOT_TOKEN
+        sync: false
+      - key: BOT_USERNAME
+        sync: false
+      - key: ADMIN_IDS
+        sync: false
+      # --- Mandatory subscription channels ---
+      - key: REQUIRED_CHANNEL_1
+        sync: false
+      - key: REQUIRED_CHANNEL_2
+        sync: false
+      - key: REQUIRED_CHANNEL_1_LINK
+        sync: false
+      - key: REQUIRED_CHANNEL_2_LINK
+        sync: false
+      # --- Database (e.g. MongoDB Atlas connection string) ---
+      - key: MONGODB_URI
+        sync: false
+      # --- Webhook secret (auto-generated, verifies Telegram requests) ---
+      - key: WEBHOOK_SECRET
+        generateValue: true
+      # --- Business / economy (optional overrides) ---
+      - key: CURRENCY
+        value: "so'm"
+      - key: REFERRAL_BONUS
+        value: "5000"
+      - key: MIN_WITHDRAWAL
+        value: "10000"
+      - key: PRICE_3_MONTHS
+        value: "120000"
+      - key: PRICE_6_MONTHS
+        value: "210000"
+      - key: PRICE_12_MONTHS
+        value: "380000"
+      # --- Payment provider hints (shown to users) ---
+      - key: CARD_NUMBER
+        sync: false
+      - key: CARD_HOLDER
+        sync: false
