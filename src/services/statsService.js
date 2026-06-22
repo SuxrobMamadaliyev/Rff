@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // Aggregated statistics for the admin dashboard.
 // -----------------------------------------------------------------------------
-import { User, Order, Payment, Withdrawal } from '../models/index.js';
+import { User, Order, Withdrawal } from '../models/index.js';
 import { ORDER_STATUS } from '../utils/constants.js';
 
 /**
@@ -20,7 +20,7 @@ export const getStatistics = async () => {
     completedOrders,
     pendingOrders,
     pendingWithdrawals,
-    paymentAgg,
+    revenueAgg,
   ] = await Promise.all([
     User.countDocuments({}),
     User.countDocuments({ createdAt: { $gte: startOfToday } }),
@@ -29,8 +29,9 @@ export const getStatistics = async () => {
     Order.countDocuments({ status: ORDER_STATUS.COMPLETED }),
     Order.countDocuments({ status: ORDER_STATUS.PENDING }),
     Withdrawal.countDocuments({ status: 'pending' }),
-    Payment.aggregate([
-      { $match: { type: 'purchase', direction: 'credit' } },
+    // Revenue = total value of completed premium orders.
+    Order.aggregate([
+      { $match: { status: ORDER_STATUS.COMPLETED } },
       { $group: { _id: null, total: { $sum: '$amount' } } },
     ]),
   ]);
@@ -43,7 +44,7 @@ export const getStatistics = async () => {
     completedOrders,
     pendingOrders,
     pendingWithdrawals,
-    totalRevenue: paymentAgg[0]?.total || 0,
+    totalRevenue: revenueAgg[0]?.total || 0,
   };
 };
 
