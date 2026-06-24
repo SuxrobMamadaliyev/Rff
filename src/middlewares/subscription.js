@@ -1,8 +1,7 @@
 // -----------------------------------------------------------------------------
-// Mandatory subscription middleware.
-// Blocks the bot until the user joins every required channel. Admins bypass it.
-// The user can re-check via the "✅ Tekshirish" inline button which produces a
-// callback query handled separately in the start controller.
+// Mandatory subscription middleware — TO'LIQ TUZATILGAN.
+// Faqat text xabarlarni bloklaydigan, callback query va pre_checkout'ni
+// to'liq o'tkazib yuboradigan versiya.
 // -----------------------------------------------------------------------------
 import { isAdmin } from '../config/index.js';
 import { Settings } from '../models/index.js';
@@ -11,21 +10,24 @@ import { setSubscribed } from '../services/userService.js';
 import { subscriptionKeyboard } from '../keyboards/userKeyboards.js';
 import messages from '../utils/messages.js';
 
-/**
- * Telegraf middleware enforcing channel subscription.
- */
 export const subscriptionGuard = () => async (ctx, next) => {
-  // Adminlar hech qachon bloklanmaydi.
+  // 1. Adminlar hech qachon bloklanmaydi
   if (isAdmin(ctx.from?.id)) return next();
 
-  // MUHIM FIX: barcha callback query'larni o'tkazib yuboramiz.
-  // Chunki foydalanuvchi allaqachon botdan foydalanayapti (tariflarni ko'ryapti),
-  // callback'larni bloklash inline tugmalarni ishlamay qoldiradi.
+  // 2. Barcha callback_query (inline tugmalar) — to'siqsiz o'tadi
+  //    Chunki foydalanuvchi allaqachon botda, inline tugmalarni bloklash
+  //    butun flow'ni sindiradi
   if (ctx.callbackQuery) return next();
 
+  // 3. Stars to'lovi lifecycle — hech qachon bloklanmaydi
+  if (ctx.preCheckoutQuery) return next();
+  if (ctx.message?.successful_payment) return next();
+
+  // 4. Subscription o'chirilgan bo'lsa — o'tkazamiz
   const settings = await Settings.getSettings();
   if (!settings.subscriptionRequired) return next();
 
+  // 5. Faqat oddiy text/command xabarlarda tekshiruv
   const { subscribed } = await checkSubscription(ctx.telegram, ctx.from.id);
 
   if (subscribed) {
@@ -36,9 +38,10 @@ export const subscriptionGuard = () => async (ctx, next) => {
     return next();
   }
 
-  // Obuna bo'lmagan: holatni keshlaymiz va kanal ro'yxatini ko'rsatamiz.
+  // Obuna bo'lmagan foydalanuvchi
   if (ctx.state.user?.isSubscribed) {
     await setSubscribed(ctx.from.id, false);
+    ctx.state.user.isSubscribed = false;
   }
 
   try {
@@ -54,4 +57,5 @@ export const subscriptionGuard = () => async (ctx, next) => {
 };
 
 export default subscriptionGuard;
+
 
