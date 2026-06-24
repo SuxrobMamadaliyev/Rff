@@ -18,6 +18,7 @@ import {
 import { notifyAdmins } from '../services/notifyService.js';
 import { findPlan } from '../utils/helpers.js';
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '../utils/constants.js';
+import { isAdmin } from '../config/index.js';
 import messages from '../utils/messages.js';
 import logger from '../utils/logger.js';
 
@@ -35,7 +36,7 @@ export const showPlans = async (ctx) => {
       });
       return undefined;
     } catch (_err) {
-      // fall through to sending a fresh message
+      // Xabar tahrirlab bo'lmasa — yangi xabar yuboramiz
     }
   }
   return ctx.reply(messages.choosePlan, { parse_mode: 'HTML', ...plansKeyboard() });
@@ -76,12 +77,12 @@ export const handlePaymentMethod = async (ctx) => {
     return undefined;
   }
 
-  // ---- Pay from balance ----
+  // ---- Balansdan to'lash ----
   if (method === PAYMENT_METHODS.BALANCE) {
     return handleBalancePurchase(ctx, plan);
   }
 
-  // ---- Manual methods (click / payme / uzum) ----
+  // ---- Manual usullar (click / payme / uzum) — ko'rsatma ekrani ----
   if (!isConfirm) {
     await ctx.answerCbQuery();
     return ctx.editMessageText(messages.paymentInstructions(plan, method), {
@@ -91,12 +92,13 @@ export const handlePaymentMethod = async (ctx) => {
     });
   }
 
-  // ---- User pressed "✅ To'lovni tasdiqlash" ----
+  // ---- Foydalanuvchi «✅ To'lovni tasdiqlash» tugmasini bosdi ----
   await ctx.answerCbQuery('✅ Qabul qilindi');
   const order = await createOrder(ctx.from.id, plan, method);
 
   await ctx.editMessageText(messages.orderCreated(plan), { parse_mode: 'HTML' });
 
+  // Adminga moderation keyboard bilan xabar
   await notifyAdmins(
     ctx.telegram,
     messages.adminNewOrder(ctx.state.user, plan, PAYMENT_METHOD_LABELS[method] || method),
@@ -107,38 +109,54 @@ export const handlePaymentMethod = async (ctx) => {
 };
 
 /**
- * Process a purchase paid directly from the user's balance.
+ * Balansdan to'lash: muvaffaqiyatli bo'lsa buyurtmani avtomatik yakunlaydi.
+ * FIX: purchaseFromBalance dan keyin completeOrder ham chaqiriladi —
+ * chunki to'lov allaqachon yechilgan, admin kutish kerak emas.
  * @param {import('telegraf').Context} ctx
  * @param {object} plan
  */
 const handleBalancePurchase = async (ctx, plan) => {
-  if (ctx.state.user.balance < plan.price) {
+  const user = ctx.state.user;
+
+  if (user.balance < plan.price) {
     await ctx.answerCbQuery('❌ Balans yetarli emas', { show_alert: true });
     return undefined;
   }
 
   try {
     const order = await purchaseFromBalance(ctx.from.id, plan);
-    await ctx.answerCbQuery('✅ Sotib olindi');
-    await ctx.editMessageText(messages.orderPaidFromBalance(plan), { parse_mode: 'HTML' });
 
+    // Balansdan to'langan buyurtma darhol yakunlanadi
+    await completeOrder(order._id.toString(), 0);
+
+    await ctx.answerCbQuery('✅ Sotib olindi');
+    await ctx.editMessageText(messages.orderPaidFromBalance(plan), {
+      parse_mode: 'HTML',
+    });
+
+    // Adminga faqat ma'lumot uchun (moderation kerak emas)
     await notifyAdmins(
       ctx.telegram,
-      messages.adminNewOrder(ctx.state.user, plan, PAYMENT_METHOD_LABELS[PAYMENT_METHODS.BALANCE]),
-      orderModerationKeyboard(order._id.toString()),
+      `✅ <b>Balansdan to'lov</b>\n\n${messages.adminNewOrder(
+        user,
+        plan,
+        PAYMENT_METHOD_LABELS[PAYMENT_METHODS.BALANCE],
+      )}`,
     );
   } catch (err) {
     if (err.message === 'INSUFFICIENT_BALANCE') {
       await ctx.answerCbQuery('❌ Balans yetarli emas', { show_alert: true });
       return undefined;
     }
+    logger.error(`Balance purchase error: ${err.message}`);
     throw err;
   }
+
   return undefined;
 };
 
 /**
- * Send a Telegram Stars invoice. Callback data: stars:<planKey>
+ * Telegram Stars invoice yuborish. Callback data: stars:<planKey>
  * @param {import('telegraf').Context} ctx
  */
 export const handleStarsInvoice = async (ctx) => {
@@ -152,26 +170,25 @@ export const handleStarsInvoice = async (ctx) => {
 
   await ctx.answerCbQuery();
 
-  // Telegram Stars invoices use the "XTR" currency and an empty provider token.
-  // The payload encodes the plan so we can finalize the order after payment.
   return ctx.replyWithInvoice({
     title: plan.title,
     description: plan.description,
     payload: `stars:${plan.key}`,
-    provider_token: '',
+    provider_token: '', // Stars uchun bo'sh qoldiriladi
     currency: 'XTR',
     prices: [{ label: plan.title, amount: plan.stars }],
   });
 };
 
 /**
- * Answer the pre_checkout_query so Telegram proceeds with payment.
+ * pre_checkout_query ga javob — Telegram to'lovni davom ettirishi uchun.
  * @param {import('telegraf').Context} ctx
  */
 export const handlePreCheckout = (ctx) => ctx.answerPreCheckoutQuery(true);
 
 /**
- * Finalize a successful Telegram Stars payment.
+ * Muvaffaqiyatli Stars to'lovini yakunlash.
+ * Stars to'lovi Telegram tomonidan tekshirilgani uchun — darhol COMPLETED.
  * @param {import('telegraf').Context} ctx
  */
 export const handleSuccessfulPayment = async (ctx) => {
@@ -180,24 +197,29 @@ export const handleSuccessfulPayment = async (ctx) => {
   const plan = findPlan(planKey);
 
   if (!plan) {
-    logger.warn(`Unknown invoice payload: ${payment?.invoice_payload}`);
-    return ctx.reply('✅ To\'lov qabul qilindi.');
+    logger.warn(`Unknown Stars invoice payload: ${payment?.invoice_payload}`);
+    return ctx.reply('✅ To\'lov qabul qilindi. Tez orada aktivatsiya qilinadi.');
   }
 
   const order = await createOrder(ctx.from.id, plan, PAYMENT_METHODS.STARS);
   await recordPayment(order, PAYMENT_METHODS.STARS);
-  // Stars payments are instant + verified by Telegram, so auto-complete.
+  // Stars to'lovi Telegram tomonidan kafolatlangan — admin confirm kerak emas
   await completeOrder(order._id.toString(), 0);
 
   await ctx.reply(messages.orderPaidFromBalance(plan), {
     parse_mode: 'HTML',
-    ...mainMenuKeyboard(),
+    ...mainMenuKeyboard(isAdmin(ctx.from.id)),
   });
 
   await notifyAdmins(
     ctx.telegram,
-    `⭐ <b>Stars to'lovi</b>\n\n${messages.adminNewOrder(ctx.state.user, plan, 'Telegram Stars')}`,
+    `⭐ <b>Stars to'lovi (avtomatik)</b>\n\n${messages.adminNewOrder(
+      ctx.state.user,
+      plan,
+      'Telegram Stars',
+    )}`,
   );
 
   return undefined;
 };
+
