@@ -6,15 +6,20 @@ import config from '../config/index.js';
 import { BUTTONS, ACTIONS, PAYMENT_METHODS } from '../utils/constants.js';
 
 /**
- * Main reply keyboard (persistent menu).
+ * Main reply keyboard — admin uchun Admin panel tugmasi ko'rinadi.
+ * @param {boolean} isAdmin
  */
-export const mainMenuKeyboard = () =>
-  Markup.keyboard([
+export const mainMenuKeyboard = (isAdmin = false) => {
+  const rows = [
     [BUTTONS.BUY_PREMIUM],
-    [BUTTONS.PROFILE, BUTTONS.REFERRAL],
-    [BUTTONS.CABINET, BUTTONS.WITHDRAW],
-    [BUTTONS.CONTACT_ADMIN],
-  ]).resize();
+    [BUTTONS.REFERRAL, BUTTONS.WITHDRAW],
+    [BUTTONS.CABINET, BUTTONS.CONTACT_ADMIN],
+  ];
+  if (isAdmin) {
+    rows.push([BUTTONS.ADMIN_PANEL]);
+  }
+  return Markup.keyboard(rows).resize();
+};
 
 /**
  * Inline keyboard listing the required channels + a check button.
@@ -33,7 +38,7 @@ export const subscriptionKeyboard = () => {
 export const plansKeyboard = () =>
   Markup.inlineKeyboard(
     config.plans.map((plan) => [
-      Markup.button.callback(`${plan.title}`, `${ACTIONS.BUY_PLAN}:${plan.key}`),
+      Markup.button.callback(`${plan.title} — ${plan.price.toLocaleString('ru-RU')} so'm`, `${ACTIONS.BUY_PLAN}:${plan.key}`),
     ]),
   );
 
@@ -64,13 +69,16 @@ export const confirmPaymentKeyboard = (planKey, method) =>
   ]);
 
 /**
- * Cabinet inline keyboard (history navigation).
+ * Kabinet inline keyboard — profil, referal, tarixlar, pul yechish hammasi shu yerda.
  */
 export const cabinetKeyboard = () =>
   Markup.inlineKeyboard([
-    [Markup.button.callback('⭐ Xaridlar tarixi', 'history:orders')],
-    [Markup.button.callback('💳 To\'lovlar tarixi', 'history:payments')],
-    [Markup.button.callback('💸 Pul yechishlar', 'history:withdrawals')],
+    [Markup.button.callback('👤 Profil', ACTIONS.CABINET_PROFILE)],
+    [Markup.button.callback('👥 Referal', ACTIONS.CABINET_REFERRAL)],
+    [Markup.button.callback('⭐ Xaridlar tarixi', ACTIONS.CABINET_ORDERS)],
+    [Markup.button.callback('💳 To\'lovlar tarixi', ACTIONS.CABINET_PAYMENTS)],
+    [Markup.button.callback('💸 Pul yechishlar', ACTIONS.CABINET_WITHDRAWALS)],
+    [Markup.button.callback('💳 Pul yechish', ACTIONS.CABINET_WITHDRAW)],
   ]);
 
 /**
@@ -83,3 +91,4 @@ export const cancelKeyboard = () =>
  * Remove the reply keyboard.
  */
 export const removeKeyboard = () => Markup.removeKeyboard();
+
