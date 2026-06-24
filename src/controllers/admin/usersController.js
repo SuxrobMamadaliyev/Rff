@@ -1,94 +1,89 @@
 // -----------------------------------------------------------------------------
-// Reply & inline keyboards shown to regular users.
+// Admin: foydalanuvchilar ro'yxati va ma'lumotlari.
 // -----------------------------------------------------------------------------
+import { User } from '../../models/index.js';
+import { formatMoney, formatDate, displayName } from '../../utils/helpers.js';
+import { ACTIONS } from '../../utils/constants.js';
 import { Markup } from 'telegraf';
-import config from '../config/index.js';
-import { BUTTONS, ACTIONS, PAYMENT_METHODS } from '../utils/constants.js';
 
 /**
- * Main reply keyboard — admin uchun Admin panel tugmasi ko'rinadi.
- * @param {boolean} isAdmin
+ * Foydalanuvchi kartochkasi uchun inline keyboard.
+ * @param {number} telegramId
  */
-export const mainMenuKeyboard = (isAdmin = false) => {
-  const rows = [
-    [BUTTONS.BUY_PREMIUM],
-    [BUTTONS.REFERRAL, BUTTONS.WITHDRAW],
-    [BUTTONS.CABINET, BUTTONS.CONTACT_ADMIN],
-  ];
-  if (isAdmin) {
-    rows.push([BUTTONS.ADMIN_PANEL]);
-  }
-  return Markup.keyboard(rows).resize();
-};
-
-/**
- * Inline keyboard listing the required channels + a check button.
- */
-export const subscriptionKeyboard = () => {
-  const rows = config.channels.map((channel, index) =>
-    [Markup.button.url(`📢 ${channel.title || `Kanal ${index + 1}`}`, channel.link || '#')],
-  );
-  rows.push([Markup.button.callback('✅ Tekshirish', ACTIONS.CHECK_SUBSCRIPTION)]);
-  return Markup.inlineKeyboard(rows);
-};
-
-/**
- * Inline keyboard listing premium plans.
- */
-export const plansKeyboard = () =>
-  Markup.inlineKeyboard(
-    config.plans.map((plan) => [
-      Markup.button.callback(`${plan.title} — ${plan.price.toLocaleString('ru-RU')} so'm`, `${ACTIONS.BUY_PLAN}:${plan.key}`),
-    ]),
-  );
-
-/**
- * Inline keyboard with payment methods for a given plan.
- */
-export const paymentMethodsKeyboard = (plan) => {
-  const rows = [
-    [Markup.button.callback('💳 Click', `${ACTIONS.PAY_METHOD}:${plan.key}:${PAYMENT_METHODS.CLICK}`)],
-    [Markup.button.callback('💳 Payme', `${ACTIONS.PAY_METHOD}:${plan.key}:${PAYMENT_METHODS.PAYME}`)],
-    [Markup.button.callback('💳 Uzum Bank', `${ACTIONS.PAY_METHOD}:${plan.key}:${PAYMENT_METHODS.UZUM}`)],
-  ];
-  if (plan.stars > 0) {
-    rows.push([Markup.button.callback(`⭐ Telegram Stars (${plan.stars}⭐)`, `${ACTIONS.PAY_STARS}:${plan.key}`)]);
-  }
-  rows.push([Markup.button.callback('💼 Balansdan to\'lash', `${ACTIONS.PAY_METHOD}:${plan.key}:${PAYMENT_METHODS.BALANCE}`)]);
-  rows.push([Markup.button.callback('⬅️ Orqaga', ACTIONS.BUY_PLAN)]);
-  return Markup.inlineKeyboard(rows);
-};
-
-/**
- * After choosing a manual method, the user confirms payment.
- */
-export const confirmPaymentKeyboard = (planKey, method) =>
+const userCardKeyboard = (telegramId) =>
   Markup.inlineKeyboard([
-    [Markup.button.callback('✅ To\'lovni tasdiqlash', `${ACTIONS.PAY_METHOD}:${planKey}:${method}:confirm`)],
-    [Markup.button.callback('❌ Bekor qilish', ACTIONS.CANCEL)],
+    [Markup.button.callback('📋 Batafsil', `${ACTIONS.ADMIN_USER_INFO}:${telegramId}`)],
   ]);
 
 /**
- * Kabinet inline keyboard — profil, referal, tarixlar, pul yechish hammasi shu yerda.
+ * So'nggi ro'yxatga olingan foydalanuvchilarni ko'rsatish (oxirgi 20 ta).
+ * @param {import('telegraf').Context} ctx
  */
-export const cabinetKeyboard = () =>
-  Markup.inlineKeyboard([
-    [Markup.button.callback('👤 Profil', ACTIONS.CABINET_PROFILE)],
-    [Markup.button.callback('👥 Referal', ACTIONS.CABINET_REFERRAL)],
-    [Markup.button.callback('⭐ Xaridlar tarixi', ACTIONS.CABINET_ORDERS)],
-    [Markup.button.callback('💳 To\'lovlar tarixi', ACTIONS.CABINET_PAYMENTS)],
-    [Markup.button.callback('💸 Pul yechishlar', ACTIONS.CABINET_WITHDRAWALS)],
-    [Markup.button.callback('💳 Pul yechish', ACTIONS.CABINET_WITHDRAW)],
-  ]);
+export const listUsers = async (ctx) => {
+  const users = await User.find({}).sort({ createdAt: -1 }).limit(20);
+
+  if (users.length === 0) {
+    return ctx.reply('👥 Foydalanuvchilar mavjud emas.');
+  }
+
+  const total = await User.countDocuments();
+  const banned = await User.countDocuments({ isBanned: true });
+  const premium = await User.countDocuments({ purchasedCount: { $gt: 0 } });
+
+  const header =
+    `👥 <b>Foydalanuvchilar</b>\n\n` +
+    `📊 Jami: <b>${total}</b> | ` +
+    `⭐ Premium: <b>${premium}</b> | ` +
+    `🚫 Banlangan: <b>${banned}</b>\n\n` +
+    `<i>Oxirgi 20 ta:</i>\n`;
+
+  const lines = users.map((u, i) => {
+    const name = displayName(u);
+    const status = u.isBanned ? '🚫' : u.purchasedCount > 0 ? '⭐' : '👤';
+    return (
+      `${i + 1}. ${status} ${name}\n` +
+      `   🆔 <code>${u.telegramId}</code> | 💰 ${formatMoney(u.balance)}\n` +
+      `   🗓 ${formatDate(u.createdAt)}`
+    );
+  });
+
+  return ctx.reply(`${header}${lines.join('\n\n')}`, { parse_mode: 'HTML' });
+};
 
 /**
- * Generic cancel inline keyboard (used inside scenes).
+ * Bitta foydalanuvchi haqida to'liq ma'lumot (inline callback orqali).
+ * Action: `ACTIONS.ADMIN_USER_INFO:<telegramId>`
+ * @param {import('telegraf').Context} ctx
  */
-export const cancelKeyboard = () =>
-  Markup.inlineKeyboard([[Markup.button.callback('❌ Bekor qilish', ACTIONS.CANCEL)]]);
+export const showUserInfo = async (ctx) => {
+  await ctx.answerCbQuery();
+  const telegramId = Number(ctx.match[1]);
+  const user = await User.findOne({ telegramId });
 
-/**
- * Remove the reply keyboard.
- */
-export const removeKeyboard = () => Markup.removeKeyboard();
+  if (!user) {
+    return ctx.reply('❌ Foydalanuvchi topilmadi.');
+  }
+
+  const name = displayName(user);
+  const status = user.isBanned
+    ? '🚫 Banlangan'
+    : user.purchasedCount > 0
+      ? '⭐ Premium xaridor'
+      : '👤 Oddiy';
+
+  const text =
+    `👤 <b>Foydalanuvchi ma'lumoti</b>\n\n` +
+    `🆔 ID: <code>${user.telegramId}</code>\n` +
+    `👤 Ism: ${name}\n` +
+    `📱 Username: ${user.username ? `@${user.username}` : '—'}\n` +
+    `🏷 Status: ${status}\n\n` +
+    `💰 Balans: <b>${formatMoney(user.balance)}</b>\n` +
+    `👥 Referallar: <b>${user.referralCount}</b>\n` +
+    `💵 Referal daromad: <b>${formatMoney(user.referralEarnings)}</b>\n` +
+    `🛒 Xaridlar: <b>${user.purchasedCount}</b>\n\n` +
+    `📅 Ro'yxatdan o'tgan: ${formatDate(user.createdAt)}\n` +
+    `🕐 Oxirgi faollik: ${formatDate(user.lastActiveAt)}`;
+
+  return ctx.reply(text, { parse_mode: 'HTML' });
+};
 
