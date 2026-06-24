@@ -12,11 +12,11 @@ import { Settings } from '../models/index.js';
 import { SCENES } from '../utils/constants.js';
 import messages from '../utils/messages.js';
 
-// Accept 12-19 digits (spaces/dashes allowed) to cover common card formats.
-const CARD_REGEX = /^[0-9 -]{12,23}$/;
+// Accept 8-19 digits (spaces/dashes allowed) to cover Uzum (8-digit) and 16-digit cards.
+const CARD_REGEX = /^[0-9 -]{8,23}$/;
 
 /**
- * Normalize a card number to digits-only grouped form for display.
+ * Normalize a card number to digits-only form for storage.
  * @param {string} raw
  * @returns {string}
  */
@@ -54,7 +54,13 @@ const withdrawScene = new Scenes.WizardScene(
       return undefined;
     }
 
-    ctx.wizard.state.cardNumber = normalizeCard(text);
+    const normalized = normalizeCard(text);
+    if (normalized.length < 8 || normalized.length > 19) {
+      await ctx.reply(messages.withdrawInvalidCard, { parse_mode: 'HTML', ...cancelKeyboard() });
+      return undefined;
+    }
+
+    ctx.wizard.state.cardNumber = normalized;
     await ctx.reply(messages.withdrawAskAmount, { parse_mode: 'HTML', ...cancelKeyboard() });
     return ctx.wizard.next();
   },
@@ -74,7 +80,10 @@ const withdrawScene = new Scenes.WizardScene(
     const minWithdrawal = settings.minWithdrawal ?? config.economy.minWithdrawal;
 
     if (amount < minWithdrawal) {
-      await ctx.reply(messages.withdrawTooSmall, { parse_mode: 'HTML', ...cancelKeyboard() });
+      await ctx.reply(
+        `❌ Minimal yechish summasi: <b>${minWithdrawal.toLocaleString('ru-RU')} ${config.economy.currency}</b>. Qaytadan kiriting:`,
+        { parse_mode: 'HTML', ...cancelKeyboard() },
+      );
       return undefined;
     }
     if (amount > user.balance) {
@@ -100,3 +109,4 @@ const withdrawScene = new Scenes.WizardScene(
 );
 
 export default withdrawScene;
+
