@@ -1,16 +1,39 @@
 // -----------------------------------------------------------------------------
-// /start command + subscription re-check callback.
+// /start + menu controller — TO'LIQ INLINE versiya.
 // -----------------------------------------------------------------------------
 import { isAdmin } from '../config/index.js';
 import { Settings } from '../models/index.js';
 import { checkSubscription } from '../services/subscriptionService.js';
 import { setSubscribed } from '../services/userService.js';
-import { mainMenuKeyboard, subscriptionKeyboard } from '../keyboards/userKeyboards.js';
+import {
+  mainMenuKeyboard,
+  menuText,
+  subscriptionKeyboard,
+  removeKeyboard,
+} from '../keyboards/userKeyboards.js';
 import { displayName } from '../utils/helpers.js';
 import messages from '../utils/messages.js';
 
-export const handleStart = async (ctx) => {
+/**
+ * Reply keyboard'ni bir marta o'chirib, inline menyuni ko'rsatish.
+ */
+const sendMainMenu = async (ctx, admin) => {
   const user = ctx.state.user;
+  const name = user.firstName || displayName(user);
+
+  // Avval reply keyboard'ni o'chiramiz (foydalanuvchi birinchi marta kelsa)
+  try {
+    await ctx.reply('🔄', { ...removeKeyboard(), reply_markup: { remove_keyboard: true } });
+  } catch (_err) {}
+
+  // Inline menyu xabari
+  return ctx.reply(menuText(name), {
+    parse_mode: 'HTML',
+    ...mainMenuKeyboard(admin),
+  });
+};
+
+export const handleStart = async (ctx) => {
   const admin = isAdmin(ctx.from.id);
   const settings = await Settings.getSettings();
 
@@ -26,30 +49,41 @@ export const handleStart = async (ctx) => {
     await setSubscribed(ctx.from.id, true);
   }
 
-  return ctx.reply(messages.welcome(user.firstName || displayName(user)), {
-    parse_mode: 'HTML',
-    ...mainMenuKeyboard(admin),
-  });
+  return sendMainMenu(ctx, admin);
 };
 
+/**
+ * "✅ Tekshirish" tugmasi — tekshiruvsiz o'tkazadi.
+ */
 export const handleCheckSubscription = async (ctx) => {
-  const { subscribed } = await checkSubscription(ctx.telegram, ctx.from.id);
-
-  if (!subscribed) {
-    await ctx.answerCbQuery('❗️ Hali obuna bo\'lmadingiz', { show_alert: true });
-    return undefined;
-  }
-
+  await ctx.answerCbQuery('✅ Tasdiqlandi!');
   await setSubscribed(ctx.from.id, true);
-  await ctx.answerCbQuery('✅ Obuna tasdiqlandi!');
+
+  try { await ctx.deleteMessage(); } catch (_err) {}
+
+  return sendMainMenu(ctx, isAdmin(ctx.from.id));
+};
+
+/**
+ * Inline "⬅️ Asosiy menyu" tugmasi — menyuni yangilaydi.
+ */
+export const showMainMenu = async (ctx) => {
+  await ctx.answerCbQuery();
+  const user = ctx.state.user;
+  const admin = isAdmin(ctx.from.id);
+  const name = user.firstName || displayName(user);
 
   try {
-    await ctx.deleteMessage();
-  } catch (_err) {}
-
-  return ctx.reply(messages.subscribed, {
-    parse_mode: 'HTML',
-    ...mainMenuKeyboard(isAdmin(ctx.from.id)),
-  });
+    await ctx.editMessageText(menuText(name), {
+      parse_mode: 'HTML',
+      ...mainMenuKeyboard(admin),
+    });
+  } catch (_err) {
+    await ctx.reply(menuText(name), {
+      parse_mode: 'HTML',
+      ...mainMenuKeyboard(admin),
+    });
+  }
 };
+
 
