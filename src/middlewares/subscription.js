@@ -9,18 +9,19 @@ import { Settings } from '../models/index.js';
 import { checkSubscription } from '../services/subscriptionService.js';
 import { setSubscribed } from '../services/userService.js';
 import { subscriptionKeyboard } from '../keyboards/userKeyboards.js';
-import { ACTIONS } from '../utils/constants.js';
 import messages from '../utils/messages.js';
 
 /**
  * Telegraf middleware enforcing channel subscription.
  */
 export const subscriptionGuard = () => async (ctx, next) => {
-  // Admins are never gated.
+  // Adminlar hech qachon bloklanmaydi.
   if (isAdmin(ctx.from?.id)) return next();
 
-  // Always let the "check" callback through so the user can re-verify.
-  if (ctx.callbackQuery?.data === ACTIONS.CHECK_SUBSCRIPTION) return next();
+  // MUHIM FIX: barcha callback query'larni o'tkazib yuboramiz.
+  // Chunki foydalanuvchi allaqachon botdan foydalanayapti (tariflarni ko'ryapti),
+  // callback'larni bloklash inline tugmalarni ishlamay qoldiradi.
+  if (ctx.callbackQuery) return next();
 
   const settings = await Settings.getSettings();
   if (!settings.subscriptionRequired) return next();
@@ -35,7 +36,7 @@ export const subscriptionGuard = () => async (ctx, next) => {
     return next();
   }
 
-  // Not subscribed: cache the state and show the join prompt.
+  // Obuna bo'lmagan: holatni keshlaymiz va kanal ro'yxatini ko'rsatamiz.
   if (ctx.state.user?.isSubscribed) {
     await setSubscribed(ctx.from.id, false);
   }
@@ -46,10 +47,11 @@ export const subscriptionGuard = () => async (ctx, next) => {
       ...subscriptionKeyboard(),
     });
   } catch (_err) {
-    // ignore delivery failures
+    // ignore
   }
 
-  return undefined; // stop processing until subscribed
+  return undefined;
 };
 
 export default subscriptionGuard;
+
