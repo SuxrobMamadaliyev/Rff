@@ -1,8 +1,8 @@
 // -----------------------------------------------------------------------------
-// User-facing routes — TO'LIQ VERSIYA.
-// Stars sotib olish/sotish route'lari qo'shildi.
+// User routes — TO'LIQ INLINE versiya.
+// Barcha tugmalar inline callback orqali ishlaydi.
 // -----------------------------------------------------------------------------
-import { handleStart, handleCheckSubscription } from '../controllers/startController.js';
+import { handleStart, handleCheckSubscription, showMainMenu } from '../controllers/startController.js';
 import { startWithdraw } from '../controllers/withdrawalController.js';
 import { startTicket } from '../controllers/ticketController.js';
 import {
@@ -32,9 +32,10 @@ import {
   handleSellStarsCustom,
   confirmSellStars,
 } from '../controllers/starsController.js';
+import { buildReferralLink } from '../utils/helpers.js';
 import { isAdmin } from '../config/index.js';
-import { mainMenuKeyboard } from '../keyboards/userKeyboards.js';
-import { BUTTONS, ACTIONS } from '../utils/constants.js';
+import { mainMenuKeyboard, menuText } from '../keyboards/userKeyboards.js';
+import { ACTIONS } from '../utils/constants.js';
 import messages from '../utils/messages.js';
 
 export const registerUserRoutes = (bot) => {
@@ -44,22 +45,46 @@ export const registerUserRoutes = (bot) => {
   // ── Subscription ──────────────────────────────────────────────────────────
   bot.action(ACTIONS.CHECK_SUBSCRIPTION, handleCheckSubscription);
 
-  // ── Global cancel (outside scenes) ───────────────────────────────────────
+  // ── Asosiy menyu (inline "Orqaga" tugmasi) ────────────────────────────────
+  bot.action(ACTIONS.MENU, showMainMenu);
+
+  // ── Global cancel ─────────────────────────────────────────────────────────
   bot.action(ACTIONS.CANCEL, async (ctx) => {
     await ctx.answerCbQuery('Bekor qilindi');
-    try { await ctx.deleteMessage(); } catch (_err) {}
-    return ctx.reply(messages.cancelled, {
-      parse_mode: 'HTML',
-      ...mainMenuKeyboard(isAdmin(ctx.from?.id)),
-    });
+    const user = ctx.state.user;
+    const admin = isAdmin(ctx.from?.id);
+    const name = user?.firstName || 'Foydalanuvchi';
+    try {
+      await ctx.editMessageText(menuText(name), {
+        parse_mode: 'HTML',
+        ...mainMenuKeyboard(admin),
+      });
+    } catch (_err) {
+      await ctx.reply(menuText(name), {
+        parse_mode: 'HTML',
+        ...mainMenuKeyboard(admin),
+      });
+    }
   });
 
-  // ── Main menu buttons ─────────────────────────────────────────────────────
-  bot.hears(BUTTONS.BUY_PREMIUM, showPlans);
-  bot.hears(BUTTONS.BUY_STARS, showBuyStars);
-  bot.hears(BUTTONS.SELL_STARS, showSellStars);
-  bot.hears(BUTTONS.REFERRAL, async (ctx) => {
-    const { buildReferralLink } = await import('../utils/helpers.js');
+  // ── Asosiy menyu inline tugmalari ─────────────────────────────────────────
+  bot.action(ACTIONS.MENU_PREMIUM, showPlans);
+  bot.action(ACTIONS.MENU_BUY_STARS, showBuyStars);
+  bot.action(ACTIONS.MENU_SELL_STARS, showSellStars);
+  bot.action(ACTIONS.MENU_CABINET, async (ctx) => {
+    await ctx.answerCbQuery();
+    return showCabinet(ctx);
+  });
+  bot.action(ACTIONS.MENU_WITHDRAW, async (ctx) => {
+    await ctx.answerCbQuery();
+    return startWithdraw(ctx);
+  });
+  bot.action(ACTIONS.MENU_CONTACT, async (ctx) => {
+    await ctx.answerCbQuery();
+    return startTicket(ctx);
+  });
+  bot.action(ACTIONS.MENU_REFERRAL, async (ctx) => {
+    await ctx.answerCbQuery();
     const user = ctx.state.user;
     const link = buildReferralLink(user.telegramId);
     return ctx.reply(messages.referral(user, link), {
@@ -67,9 +92,6 @@ export const registerUserRoutes = (bot) => {
       disable_web_page_preview: true,
     });
   });
-  bot.hears(BUTTONS.WITHDRAW, startWithdraw);
-  bot.hears(BUTTONS.CABINET, showCabinet);
-  bot.hears(BUTTONS.CONTACT_ADMIN, startTicket);
 
   // ── Cabinet inline ────────────────────────────────────────────────────────
   bot.action(ACTIONS.CABINET_PROFILE, showProfileInline);
@@ -100,12 +122,25 @@ export const registerUserRoutes = (bot) => {
   bot.action(new RegExp(`^${ACTIONS.SELL_STARS_AMOUNT}:(\\d+)$`), handleSellStarsAmount);
   bot.action(ACTIONS.SELL_STARS_CUSTOM, handleSellStarsCustom);
 
-  // ── Stars tasdiqlash (buy yoki sell) ──────────────────────────────────────
+  // ── Stars tasdiqlash ──────────────────────────────────────────────────────
   bot.action(new RegExp(`^${ACTIONS.CONFIRM_STARS}:(buy):(\\d+)$`), confirmBuyStars);
   bot.action(new RegExp(`^${ACTIONS.CONFIRM_STARS}:(sell):(\\d+)$`), confirmSellStars);
+
+  // ── Eski reply keyboard text handler (zaxira) ─────────────────────────────
+  // Endi reply keyboard yo'q, lekin eski foydalanuvchilar uchun qoldiramiz
+  bot.on('text', async (ctx) => {
+    const admin = isAdmin(ctx.from?.id);
+    const user = ctx.state.user;
+    const name = user?.firstName || 'Foydalanuvchi';
+    return ctx.reply(menuText(name), {
+      parse_mode: 'HTML',
+      ...mainMenuKeyboard(admin),
+    });
+  });
 };
 
 export default registerUserRoutes;
+
 
 
 
