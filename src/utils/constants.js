@@ -1,9 +1,12 @@
 // -----------------------------------------------------------------------------
-// Application wide constants: button labels, callback action names and enums.
+// Application wide constants — TO'LIQ VERSIYA.
+// Stars sotish/sotib olish action'lari qo'shildi.
 // -----------------------------------------------------------------------------
 
 export const BUTTONS = {
   BUY_PREMIUM: '⭐ Premium sotib olish',
+  BUY_STARS: '⭐ Stars sotib olish',
+  SELL_STARS: '💰 Stars sotish',
   REFERRAL: '👥 Referal',
   WITHDRAW: '💳 Pul yechish',
   CONTACT_ADMIN: '📞 Admin bilan bog\'lanish',
@@ -47,6 +50,12 @@ export const ACTIONS = {
   CABINET_PAYMENTS: 'cabinet:payments',
   CABINET_WITHDRAWALS: 'cabinet:withdrawals',
   CABINET_WITHDRAW: 'cabinet:withdraw',
+  // Stars actions
+  BUY_STARS_AMOUNT: 'stars_buy',
+  BUY_STARS_CUSTOM: 'stars_buy_custom',
+  SELL_STARS_AMOUNT: 'stars_sell',
+  SELL_STARS_CUSTOM: 'stars_sell_custom',
+  CONFIRM_STARS: 'stars_confirm',
 };
 
 export const PAYMENT_METHODS = {
@@ -96,12 +105,16 @@ export const TRANSACTION_TYPE = {
   ADMIN_SUB: 'admin_sub',
   ADMIN_BONUS: 'admin_bonus',
   PURCHASE: 'purchase',
+  STARS_BUY: 'stars_buy',
+  STARS_SELL: 'stars_sell',
   WITHDRAWAL: 'withdrawal',
 };
 
 export const SCENES = {
   WITHDRAW: 'withdraw_scene',
   TICKET: 'ticket_scene',
+  STARS_BUY: 'stars_buy_scene',
+  STARS_SELL: 'stars_sell_scene',
   ADMIN_ADD_BALANCE: 'admin_add_balance_scene',
   ADMIN_SUB_BALANCE: 'admin_sub_balance_scene',
   ADMIN_BONUS: 'admin_bonus_scene',
@@ -111,4 +124,12 @@ export const SCENES = {
   ADMIN_UNBAN: 'admin_unban_scene',
   ADMIN_REPLY_TICKET: 'admin_reply_ticket_scene',
 };
+
+export const STARS_PRICES = {
+  // 1 Stars = necha so'm (sotib olish narxi — foydalanuvchi to'laydi)
+  BUY_RATE: 130,
+  // 1 Stars = necha so'm (sotish narxi — foydalanuvchi oladi)
+  SELL_RATE: 110,
+};
+
 
