@@ -9,15 +9,12 @@ import { mainMenuKeyboard, subscriptionKeyboard } from '../keyboards/userKeyboar
 import { displayName } from '../utils/helpers.js';
 import messages from '../utils/messages.js';
 
-/**
- * Handle /start. Shows the subscription gate when needed, otherwise the menu.
- * @param {import('telegraf').Context} ctx
- */
 export const handleStart = async (ctx) => {
   const user = ctx.state.user;
+  const admin = isAdmin(ctx.from.id);
   const settings = await Settings.getSettings();
 
-  if (!isAdmin(ctx.from.id) && settings.subscriptionRequired) {
+  if (!admin && settings.subscriptionRequired) {
     const { subscribed } = await checkSubscription(ctx.telegram, ctx.from.id);
     if (!subscribed) {
       await setSubscribed(ctx.from.id, false);
@@ -31,14 +28,10 @@ export const handleStart = async (ctx) => {
 
   return ctx.reply(messages.welcome(user.firstName || displayName(user)), {
     parse_mode: 'HTML',
-    ...mainMenuKeyboard(),
+    ...mainMenuKeyboard(admin),
   });
 };
 
-/**
- * Handle the "✅ Tekshirish" inline button.
- * @param {import('telegraf').Context} ctx
- */
 export const handleCheckSubscription = async (ctx) => {
   const { subscribed } = await checkSubscription(ctx.telegram, ctx.from.id);
 
@@ -50,15 +43,13 @@ export const handleCheckSubscription = async (ctx) => {
   await setSubscribed(ctx.from.id, true);
   await ctx.answerCbQuery('✅ Obuna tasdiqlandi!');
 
-  // Remove the gate message, then greet with the main menu.
   try {
     await ctx.deleteMessage();
-  } catch (_err) {
-    // message may be too old to delete; ignore
-  }
+  } catch (_err) {}
 
   return ctx.reply(messages.subscribed, {
     parse_mode: 'HTML',
-    ...mainMenuKeyboard(),
+    ...mainMenuKeyboard(isAdmin(ctx.from.id)),
   });
 };
+
