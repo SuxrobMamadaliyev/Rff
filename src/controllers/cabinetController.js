@@ -1,9 +1,9 @@
 // -----------------------------------------------------------------------------
-// Personal cabinet: balance overview + purchase/payment/withdrawal history.
+// Personal cabinet: profil, referal, balance overview + history.
 // -----------------------------------------------------------------------------
 import { Order, Payment, Withdrawal } from '../models/index.js';
 import { cabinetKeyboard } from '../keyboards/userKeyboards.js';
-import { formatMoney, formatDate } from '../utils/helpers.js';
+import { formatMoney, formatDate, buildReferralLink } from '../utils/helpers.js';
 import {
   PAYMENT_METHOD_LABELS,
   ORDER_STATUS,
@@ -26,7 +26,6 @@ const WITHDRAWAL_STATUS_LABEL = {
 
 /**
  * Show the cabinet overview.
- * @param {import('telegraf').Context} ctx
  */
 export const showCabinet = (ctx) =>
   ctx.reply(messages.cabinet(ctx.state.user), {
@@ -35,8 +34,29 @@ export const showCabinet = (ctx) =>
   });
 
 /**
+ * Show profile (inline tugmadan).
+ */
+export const showProfileInline = async (ctx) => {
+  await ctx.answerCbQuery();
+  const user = ctx.state.user;
+  return ctx.reply(messages.profile(user), { parse_mode: 'HTML' });
+};
+
+/**
+ * Show referral (inline tugmadan).
+ */
+export const showReferralInline = async (ctx) => {
+  await ctx.answerCbQuery();
+  const user = ctx.state.user;
+  const link = buildReferralLink(user.telegramId);
+  return ctx.reply(messages.referral(user, link), {
+    parse_mode: 'HTML',
+    disable_web_page_preview: true,
+  });
+};
+
+/**
  * Show the user's last purchases.
- * @param {import('telegraf').Context} ctx
  */
 export const showOrderHistory = async (ctx) => {
   await ctx.answerCbQuery();
@@ -58,7 +78,6 @@ export const showOrderHistory = async (ctx) => {
 
 /**
  * Show the user's last balance movements / payments.
- * @param {import('telegraf').Context} ctx
  */
 export const showPaymentHistory = async (ctx) => {
   await ctx.answerCbQuery();
@@ -79,7 +98,6 @@ export const showPaymentHistory = async (ctx) => {
 
 /**
  * Show the user's withdrawal requests.
- * @param {import('telegraf').Context} ctx
  */
 export const showWithdrawalHistory = async (ctx) => {
   await ctx.answerCbQuery();
@@ -99,3 +117,12 @@ export const showWithdrawalHistory = async (ctx) => {
 
   return ctx.reply(`💸 <b>Pul yechishlar</b>\n\n${lines.join('\n\n')}`, { parse_mode: 'HTML' });
 };
+
+/**
+ * Enter withdraw scene from cabinet.
+ */
+export const startWithdrawFromCabinet = async (ctx) => {
+  await ctx.answerCbQuery();
+  return ctx.scene.enter('withdraw_scene');
+};
+
