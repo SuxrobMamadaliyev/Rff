@@ -136,7 +136,7 @@ export const messages = {
   ticketStart:
     `📞 <b>Admin bilan bog'lanish</b>\n\n` +
     `Savol yoki muammoyingizni yozib yuboring. Admin tez orada javob beradi.`,
-  ticketCreated: `✅ Murojaatingiz adminга yuborildi. Tez orada javob olasiz.`,
+  ticketCreated: `✅ Murojaatingiz adminga yuborildi. Tez orada javob olasiz.`,
   ticketAdminReply: (text) =>
     `📩 <b>Admindan javob:</b>\n\n${escapeHtml(text)}`,
 
@@ -167,3 +167,4 @@ export const messages = {
 };
 
 export default messages;
+
