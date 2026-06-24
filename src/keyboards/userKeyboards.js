@@ -1,54 +1,77 @@
 // -----------------------------------------------------------------------------
-// Reply & inline keyboards shown to regular users — TO'LIQ VERSIYA.
-// Stars sotish/sotib olish tugmalari qo'shildi.
+// Keyboards — TO'LIQ INLINE versiya (Hamyon uslubi).
+// Reply keyboard yo'q, hammasi inline.
 // -----------------------------------------------------------------------------
 import { Markup } from 'telegraf';
 import config from '../config/index.js';
-import { BUTTONS, ACTIONS, PAYMENT_METHODS } from '../utils/constants.js';
+import { ACTIONS, PAYMENT_METHODS } from '../utils/constants.js';
 
 /**
- * Main reply keyboard — admin uchun Admin panel tugmasi ko'rinadi.
+ * Asosiy menyu — TO'LIQ INLINE.
+ * Hamyon botdagi kabi rangli 2-ustunli tugmalar.
  * @param {boolean} isAdmin
  */
 export const mainMenuKeyboard = (isAdmin = false) => {
   const rows = [
-    [BUTTONS.BUY_PREMIUM],
-    [BUTTONS.BUY_STARS, BUTTONS.SELL_STARS],
-    [BUTTONS.REFERRAL, BUTTONS.WITHDRAW],
-    [BUTTONS.CABINET, BUTTONS.CONTACT_ADMIN],
+    [
+      Markup.button.callback('⭐ Premium sotib olish', ACTIONS.MENU_PREMIUM),
+      Markup.button.callback('🗄 Kabinet', ACTIONS.MENU_CABINET),
+    ],
+    [
+      Markup.button.callback('⭐ Stars sotib olish', ACTIONS.MENU_BUY_STARS),
+      Markup.button.callback('💰 Stars sotish', ACTIONS.MENU_SELL_STARS),
+    ],
+    [
+      Markup.button.callback('👥 Referal', ACTIONS.MENU_REFERRAL),
+      Markup.button.callback('💳 Pul yechish', ACTIONS.MENU_WITHDRAW),
+    ],
+    [
+      Markup.button.callback('📞 Admin bilan bog\'lanish', ACTIONS.MENU_CONTACT),
+    ],
   ];
   if (isAdmin) {
-    rows.push([BUTTONS.ADMIN_PANEL]);
+    rows.push([Markup.button.callback('🛠 Admin panel', ACTIONS.MENU_ADMIN)]);
   }
-  return Markup.keyboard(rows).resize();
+  return Markup.inlineKeyboard(rows);
 };
 
 /**
- * Inline keyboard listing the required channels + a check button.
+ * Menyu xabari uchun matn.
+ */
+export const menuText = (name) =>
+  `👋 <b>${name}</b>, xush kelibsiz!\n\n` +
+  `🤖 <b>Premium Shop</b> — kerakli xizmatni tanlang 👇`;
+
+/**
+ * Obuna tekshiruv keyboard.
  */
 export const subscriptionKeyboard = () => {
-  const rows = config.channels.map((channel, index) =>
-    [Markup.button.url(`📢 ${channel.title || `Kanal ${index + 1}`}`, channel.link || '#')],
-  );
+  const rows = config.channels.map((channel, index) => [
+    Markup.button.url(
+      `📢 ${channel.title || `Kanal ${index + 1}`}`,
+      channel.link || '#',
+    ),
+  ]);
   rows.push([Markup.button.callback('✅ Tekshirish', ACTIONS.CHECK_SUBSCRIPTION)]);
   return Markup.inlineKeyboard(rows);
 };
 
 /**
- * Inline keyboard listing premium plans.
+ * Premium tariflar.
  */
 export const plansKeyboard = () =>
-  Markup.inlineKeyboard(
-    config.plans.map((plan) => [
+  Markup.inlineKeyboard([
+    ...config.plans.map((plan) => [
       Markup.button.callback(
         `${plan.title} — ${plan.price.toLocaleString('ru-RU')} so'm`,
         `${ACTIONS.BUY_PLAN}:${plan.key}`,
       ),
     ]),
-  );
+    [Markup.button.callback('⬅️ Orqaga', ACTIONS.MENU)],
+  ]);
 
 /**
- * Inline keyboard with payment methods for a given plan.
+ * To'lov usullari.
  */
 export const paymentMethodsKeyboard = (plan) => {
   const rows = [
@@ -72,7 +95,7 @@ export const paymentMethodsKeyboard = (plan) => {
 };
 
 /**
- * After choosing a manual method, the user confirms payment.
+ * To'lovni tasdiqlash.
  */
 export const confirmPaymentKeyboard = (planKey, method) =>
   Markup.inlineKeyboard([
@@ -81,66 +104,80 @@ export const confirmPaymentKeyboard = (planKey, method) =>
   ]);
 
 /**
- * Stars sotib olish — miqdor tanlash keyboard.
+ * Stars sotib olish miqdor tanlash.
  */
 export const buyStarsKeyboard = () =>
   Markup.inlineKeyboard([
-    [Markup.button.callback('⭐ 50 Stars', `${ACTIONS.BUY_STARS_AMOUNT}:50`)],
-    [Markup.button.callback('⭐ 100 Stars', `${ACTIONS.BUY_STARS_AMOUNT}:100`)],
-    [Markup.button.callback('⭐ 250 Stars', `${ACTIONS.BUY_STARS_AMOUNT}:250`)],
-    [Markup.button.callback('⭐ 500 Stars', `${ACTIONS.BUY_STARS_AMOUNT}:500`)],
+    [
+      Markup.button.callback('⭐ 50 Stars', `${ACTIONS.BUY_STARS_AMOUNT}:50`),
+      Markup.button.callback('⭐ 100 Stars', `${ACTIONS.BUY_STARS_AMOUNT}:100`),
+    ],
+    [
+      Markup.button.callback('⭐ 250 Stars', `${ACTIONS.BUY_STARS_AMOUNT}:250`),
+      Markup.button.callback('⭐ 500 Stars', `${ACTIONS.BUY_STARS_AMOUNT}:500`),
+    ],
     [Markup.button.callback('⭐ 1000 Stars', `${ACTIONS.BUY_STARS_AMOUNT}:1000`)],
     [Markup.button.callback('✍️ Boshqa miqdor', ACTIONS.BUY_STARS_CUSTOM)],
-    [Markup.button.callback('❌ Bekor qilish', ACTIONS.CANCEL)],
+    [Markup.button.callback('⬅️ Orqaga', ACTIONS.MENU)],
   ]);
 
 /**
- * Stars sotish — miqdor tanlash keyboard.
+ * Stars sotish miqdor tanlash.
  */
 export const sellStarsKeyboard = () =>
   Markup.inlineKeyboard([
-    [Markup.button.callback('⭐ 50 Stars', `${ACTIONS.SELL_STARS_AMOUNT}:50`)],
-    [Markup.button.callback('⭐ 100 Stars', `${ACTIONS.SELL_STARS_AMOUNT}:100`)],
-    [Markup.button.callback('⭐ 250 Stars', `${ACTIONS.SELL_STARS_AMOUNT}:250`)],
-    [Markup.button.callback('⭐ 500 Stars', `${ACTIONS.SELL_STARS_AMOUNT}:500`)],
+    [
+      Markup.button.callback('⭐ 50 Stars', `${ACTIONS.SELL_STARS_AMOUNT}:50`),
+      Markup.button.callback('⭐ 100 Stars', `${ACTIONS.SELL_STARS_AMOUNT}:100`),
+    ],
+    [
+      Markup.button.callback('⭐ 250 Stars', `${ACTIONS.SELL_STARS_AMOUNT}:250`),
+      Markup.button.callback('⭐ 500 Stars', `${ACTIONS.SELL_STARS_AMOUNT}:500`),
+    ],
     [Markup.button.callback('⭐ 1000 Stars', `${ACTIONS.SELL_STARS_AMOUNT}:1000`)],
     [Markup.button.callback('✍️ Boshqa miqdor', ACTIONS.SELL_STARS_CUSTOM)],
-    [Markup.button.callback('❌ Bekor qilish', ACTIONS.CANCEL)],
+    [Markup.button.callback('⬅️ Orqaga', ACTIONS.MENU)],
   ]);
 
 /**
- * Stars tranzaksiyasini tasdiqlash keyboard.
- * @param {'buy'|'sell'} type
- * @param {number} amount
+ * Stars tasdiqlash.
  */
 export const confirmStarsKeyboard = (type, amount) =>
   Markup.inlineKeyboard([
     [Markup.button.callback('✅ Tasdiqlash', `${ACTIONS.CONFIRM_STARS}:${type}:${amount}`)],
-    [Markup.button.callback('❌ Bekor qilish', ACTIONS.CANCEL)],
+    [Markup.button.callback('⬅️ Orqaga', ACTIONS.MENU)],
   ]);
 
 /**
- * Kabinet inline keyboard.
+ * Kabinet.
  */
 export const cabinetKeyboard = () =>
   Markup.inlineKeyboard([
-    [Markup.button.callback('👤 Profil', ACTIONS.CABINET_PROFILE)],
-    [Markup.button.callback('👥 Referal', ACTIONS.CABINET_REFERRAL)],
-    [Markup.button.callback('⭐ Xaridlar tarixi', ACTIONS.CABINET_ORDERS)],
-    [Markup.button.callback('💳 To\'lovlar tarixi', ACTIONS.CABINET_PAYMENTS)],
-    [Markup.button.callback('💸 Pul yechishlar', ACTIONS.CABINET_WITHDRAWALS)],
-    [Markup.button.callback('💳 Pul yechish', ACTIONS.CABINET_WITHDRAW)],
+    [
+      Markup.button.callback('👤 Profil', ACTIONS.CABINET_PROFILE),
+      Markup.button.callback('👥 Referal', ACTIONS.CABINET_REFERRAL),
+    ],
+    [
+      Markup.button.callback('⭐ Xaridlar', ACTIONS.CABINET_ORDERS),
+      Markup.button.callback('💳 To\'lovlar', ACTIONS.CABINET_PAYMENTS),
+    ],
+    [
+      Markup.button.callback('💸 Yechishlar', ACTIONS.CABINET_WITHDRAWALS),
+      Markup.button.callback('💳 Pul yechish', ACTIONS.CABINET_WITHDRAW),
+    ],
+    [Markup.button.callback('⬅️ Asosiy menyu', ACTIONS.MENU)],
   ]);
 
 /**
- * Generic cancel inline keyboard.
+ * Bekor qilish.
  */
 export const cancelKeyboard = () =>
   Markup.inlineKeyboard([[Markup.button.callback('❌ Bekor qilish', ACTIONS.CANCEL)]]);
 
 /**
- * Remove the reply keyboard.
+ * Reply keyboard'ni o'chirish (faqat /start da bir marta).
  */
 export const removeKeyboard = () => Markup.removeKeyboard();
+
 
 
