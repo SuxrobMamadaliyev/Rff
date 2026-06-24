@@ -1,6 +1,5 @@
 // -----------------------------------------------------------------------------
-// Application wide constants — TO'LIQ VERSIYA.
-// Stars sotish/sotib olish action'lari qo'shildi.
+// Application wide constants — INLINE MENYU versiya.
 // -----------------------------------------------------------------------------
 
 export const BUTTONS = {
@@ -31,10 +30,23 @@ export const ADMIN_BUTTONS = {
 };
 
 export const ACTIONS = {
+  // Menu
+  MENU: 'menu',
+  MENU_PREMIUM: 'menu:premium',
+  MENU_BUY_STARS: 'menu:buy_stars',
+  MENU_SELL_STARS: 'menu:sell_stars',
+  MENU_REFERRAL: 'menu:referral',
+  MENU_WITHDRAW: 'menu:withdraw',
+  MENU_CABINET: 'menu:cabinet',
+  MENU_CONTACT: 'menu:contact',
+  MENU_ADMIN: 'menu:admin',
+  // Subscription
   CHECK_SUBSCRIPTION: 'check_sub',
+  // Premium
   BUY_PLAN: 'buy',
   PAY_METHOD: 'pay',
   PAY_STARS: 'stars',
+  // Admin moderation
   CONFIRM_ORDER: 'order_ok',
   REJECT_ORDER: 'order_no',
   CONFIRM_WITHDRAW: 'wd_ok',
@@ -43,14 +55,14 @@ export const ACTIONS = {
   CLOSE_TICKET: 'ticket_close',
   ADMIN_USER_INFO: 'usr',
   CANCEL: 'cancel',
-  // Cabinet inline actions
+  // Cabinet
   CABINET_PROFILE: 'cabinet:profile',
   CABINET_REFERRAL: 'cabinet:referral',
   CABINET_ORDERS: 'cabinet:orders',
   CABINET_PAYMENTS: 'cabinet:payments',
   CABINET_WITHDRAWALS: 'cabinet:withdrawals',
   CABINET_WITHDRAW: 'cabinet:withdraw',
-  // Stars actions
+  // Stars
   BUY_STARS_AMOUNT: 'stars_buy',
   BUY_STARS_CUSTOM: 'stars_buy_custom',
   SELL_STARS_AMOUNT: 'stars_sell',
@@ -126,10 +138,9 @@ export const SCENES = {
 };
 
 export const STARS_PRICES = {
-  // 1 Stars = necha so'm (sotib olish narxi — foydalanuvchi to'laydi)
   BUY_RATE: 130,
-  // 1 Stars = necha so'm (sotish narxi — foydalanuvchi oladi)
   SELL_RATE: 110,
 };
+
 
 
