@@ -1,7 +1,5 @@
 // -----------------------------------------------------------------------------
-// Admin routes: panel buttons and moderation callbacks. Every handler is
-// wrapped with `requireAdmin` (and inline callbacks are also guarded) so only
-// admins can trigger them.
+// Admin routes.
 // -----------------------------------------------------------------------------
 import { requireAdmin } from '../middlewares/admin.js';
 import {
@@ -31,18 +29,14 @@ import {
   replyTicket,
   closeTicketHandler,
 } from '../controllers/admin/moderationController.js';
-import { ADMIN_BUTTONS, ACTIONS } from '../utils/constants.js';
+import { BUTTONS, ADMIN_BUTTONS, ACTIONS } from '../utils/constants.js';
 
-/**
- * Register all admin routes on the bot instance.
- * @param {import('telegraf').Telegraf} bot
- */
 export const registerAdminRoutes = (bot) => {
-  // ----- Panel open / close -----
+  // Admin panel tugmasi (asosiy menuda faqat adminga ko'rinadi)
+  bot.hears(BUTTONS.ADMIN_PANEL, requireAdmin(openPanel));
   bot.command('admin', requireAdmin(openPanel));
   bot.hears(ADMIN_BUTTONS.EXIT, requireAdmin(exitPanel));
 
-  // ----- Panel buttons -----
   bot.hears(ADMIN_BUTTONS.STATS, requireAdmin(showStatistics));
   bot.hears(ADMIN_BUTTONS.USERS, requireAdmin(listUsers));
   bot.hears(ADMIN_BUTTONS.ADD_BALANCE, requireAdmin(enterAddBalance));
@@ -56,11 +50,9 @@ export const registerAdminRoutes = (bot) => {
   bot.hears(ADMIN_BUTTONS.ORDERS, requireAdmin(listOrders));
   bot.hears(ADMIN_BUTTONS.SETTINGS, requireAdmin(showSettings));
 
-  // ----- Settings toggles (inline) -----
   bot.action('settings:toggle_sub', requireAdmin(toggleSubscription));
   bot.action('settings:toggle_bot', requireAdmin(toggleBot));
 
-  // ----- Moderation callbacks (inline) -----
   bot.action(new RegExp(`^${ACTIONS.CONFIRM_ORDER}:(.+)$`), requireAdmin(confirmOrder));
   bot.action(new RegExp(`^${ACTIONS.REJECT_ORDER}:(.+)$`), requireAdmin(declineOrder));
   bot.action(new RegExp(`^${ACTIONS.CONFIRM_WITHDRAW}:(.+)$`), requireAdmin(confirmWithdrawal));
@@ -70,3 +62,4 @@ export const registerAdminRoutes = (bot) => {
 };
 
 export default registerAdminRoutes;
+
