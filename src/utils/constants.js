@@ -1,19 +1,16 @@
 // -----------------------------------------------------------------------------
 // Application wide constants: button labels, callback action names and enums.
-// Keeping labels here lets controllers, keyboards and routes stay in sync.
 // -----------------------------------------------------------------------------
 
-// Main reply keyboard button labels (also used to route text messages).
 export const BUTTONS = {
   BUY_PREMIUM: '⭐ Premium sotib olish',
-  PROFILE: '👤 Profil',
   REFERRAL: '👥 Referal',
   WITHDRAW: '💳 Pul yechish',
   CONTACT_ADMIN: '📞 Admin bilan bog\'lanish',
   CABINET: '🗄 Kabinet',
+  ADMIN_PANEL: '🛠 Admin panel',
 };
 
-// Admin reply keyboard button labels.
 export const ADMIN_BUTTONS = {
   STATS: '📊 Statistika',
   USERS: '👥 Foydalanuvchilar',
@@ -30,23 +27,28 @@ export const ADMIN_BUTTONS = {
   EXIT: '⬅️ Chiqish',
 };
 
-// Inline callback action prefixes / names.
 export const ACTIONS = {
   CHECK_SUBSCRIPTION: 'check_sub',
-  BUY_PLAN: 'buy', // buy:<planKey>
-  PAY_METHOD: 'pay', // pay:<planKey>:<method>
-  PAY_STARS: 'stars', // stars:<planKey>
-  CONFIRM_ORDER: 'order_ok', // order_ok:<orderId>
-  REJECT_ORDER: 'order_no', // order_no:<orderId>
-  CONFIRM_WITHDRAW: 'wd_ok', // wd_ok:<withdrawalId>
-  REJECT_WITHDRAW: 'wd_no', // wd_no:<withdrawalId>
-  REPLY_TICKET: 'ticket_reply', // ticket_reply:<ticketId>
-  CLOSE_TICKET: 'ticket_close', // ticket_close:<ticketId>
-  ADMIN_USER_INFO: 'usr', // usr:<telegramId>
+  BUY_PLAN: 'buy',
+  PAY_METHOD: 'pay',
+  PAY_STARS: 'stars',
+  CONFIRM_ORDER: 'order_ok',
+  REJECT_ORDER: 'order_no',
+  CONFIRM_WITHDRAW: 'wd_ok',
+  REJECT_WITHDRAW: 'wd_no',
+  REPLY_TICKET: 'ticket_reply',
+  CLOSE_TICKET: 'ticket_close',
+  ADMIN_USER_INFO: 'usr',
   CANCEL: 'cancel',
+  // Cabinet inline actions
+  CABINET_PROFILE: 'cabinet:profile',
+  CABINET_REFERRAL: 'cabinet:referral',
+  CABINET_ORDERS: 'cabinet:orders',
+  CABINET_PAYMENTS: 'cabinet:payments',
+  CABINET_WITHDRAWALS: 'cabinet:withdrawals',
+  CABINET_WITHDRAW: 'cabinet:withdraw',
 };
 
-// Payment methods.
 export const PAYMENT_METHODS = {
   CLICK: 'click',
   PAYME: 'payme',
@@ -63,7 +65,6 @@ export const PAYMENT_METHOD_LABELS = {
   [PAYMENT_METHODS.BALANCE]: 'Balans',
 };
 
-// Status enums shared across models.
 export const ORDER_STATUS = {
   PENDING: 'pending',
   PAID: 'paid',
@@ -98,7 +99,6 @@ export const TRANSACTION_TYPE = {
   WITHDRAWAL: 'withdrawal',
 };
 
-// Scene identifiers (Telegraf WizardScene names).
 export const SCENES = {
   WITHDRAW: 'withdraw_scene',
   TICKET: 'ticket_scene',
@@ -111,3 +111,4 @@ export const SCENES = {
   ADMIN_UNBAN: 'admin_unban_scene',
   ADMIN_REPLY_TICKET: 'admin_reply_ticket_scene',
 };
+
