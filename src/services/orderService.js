@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // Order & payment business logic.
 // -----------------------------------------------------------------------------
-import { Order, Payment } from '../models/index.js';
+import { Order, Payment, User } from '../models/index.js';
 import { adjustBalance } from './userService.js';
 import {
   ORDER_STATUS,
@@ -36,7 +36,6 @@ export const createOrder = (telegramId, plan, method) =>
  * @returns {Promise<import('mongoose').Document>} the order
  */
 export const purchaseFromBalance = async (telegramId, plan) => {
-  // adjustBalance throws if the balance is insufficient (validated first).
   const order = await Order.create({
     telegramId,
     planKey: plan.key,
@@ -89,7 +88,7 @@ export const completeOrder = async (orderId, adminId) => {
   order.handledAt = new Date();
   await order.save();
 
-  const { User } = await import('../models/index.js');
+  // FIX: dynamic import o'rniga static import ishlatildi (tepada import qo'shildi)
   await User.updateOne({ telegramId: order.telegramId }, { $inc: { purchasedCount: 1 } });
 
   return order;
@@ -111,3 +110,5 @@ export const rejectOrder = async (orderId, adminId) => {
   await order.save();
   return order;
 };
+
+  
