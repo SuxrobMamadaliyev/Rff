@@ -73,6 +73,7 @@ export const declineOrder = async (ctx) => {
   await ctx.answerCbQuery('❌ Rad etildi');
   await stampMessage(ctx, `❌ <b>Rad etildi</b> (admin: ${ctx.from.id})`);
 
+  // FIX: order null emasligini tekshirgandan keyin notifyUser chaqiriladi
   await notifyUser(
     ctx.telegram,
     order.telegramId,
@@ -95,12 +96,16 @@ export const confirmWithdrawal = async (ctx) => {
     await ctx.answerCbQuery('So\'rov topilmadi', { show_alert: true });
     return undefined;
   }
+  if (!ok && reason === 'ALREADY_HANDLED') {
+    await ctx.answerCbQuery('Allaqachon ko\'rib chiqilgan');
+    return undefined;
+  }
   if (!ok && reason === 'INSUFFICIENT_BALANCE') {
     await ctx.answerCbQuery('❌ Foydalanuvchi balansi yetarli emas', { show_alert: true });
     return undefined;
   }
   if (!ok) {
-    await ctx.answerCbQuery('Allaqachon ko\'rib chiqilgan');
+    await ctx.answerCbQuery('Xatolik yuz berdi', { show_alert: true });
     return undefined;
   }
 
@@ -168,3 +173,4 @@ export const closeTicketHandler = async (ctx) => {
   await stampMessage(ctx, `🔒 <b>Yopildi</b> (admin: ${ctx.from.id})`);
   return undefined;
 };
+
