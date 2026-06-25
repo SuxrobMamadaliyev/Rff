@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------
-// Admin routes.
+// Admin routes — INLINE MENYU versiya.
 // -----------------------------------------------------------------------------
 import { requireAdmin } from '../middlewares/admin.js';
 import {
@@ -29,14 +29,16 @@ import {
   replyTicket,
   closeTicketHandler,
 } from '../controllers/admin/moderationController.js';
-import { BUTTONS, ADMIN_BUTTONS, ACTIONS } from '../utils/constants.js';
+import { ADMIN_BUTTONS, ACTIONS } from '../utils/constants.js';
 
 export const registerAdminRoutes = (bot) => {
-  // Admin panel tugmasi (asosiy menuda faqat adminga ko'rinadi)
-  bot.hears(BUTTONS.ADMIN_PANEL, requireAdmin(openPanel));
+  // Admin panel — inline callback orqali
+  bot.action(ACTIONS.MENU_ADMIN, requireAdmin(openPanel));
+  // Zaxira: /admin command
   bot.command('admin', requireAdmin(openPanel));
-  bot.hears(ADMIN_BUTTONS.EXIT, requireAdmin(exitPanel));
 
+  // Admin reply keyboard (admin panel ichida hali reply keyboard ishlatiladi)
+  bot.hears(ADMIN_BUTTONS.EXIT, requireAdmin(exitPanel));
   bot.hears(ADMIN_BUTTONS.STATS, requireAdmin(showStatistics));
   bot.hears(ADMIN_BUTTONS.USERS, requireAdmin(listUsers));
   bot.hears(ADMIN_BUTTONS.ADD_BALANCE, requireAdmin(enterAddBalance));
@@ -59,7 +61,12 @@ export const registerAdminRoutes = (bot) => {
   bot.action(new RegExp(`^${ACTIONS.REJECT_WITHDRAW}:(.+)$`), requireAdmin(declineWithdrawal));
   bot.action(new RegExp(`^${ACTIONS.REPLY_TICKET}:(.+)$`), requireAdmin(replyTicket));
   bot.action(new RegExp(`^${ACTIONS.CLOSE_TICKET}:(.+)$`), requireAdmin(closeTicketHandler));
+  bot.action(new RegExp(`^${ACTIONS.ADMIN_USER_INFO}:(.+)$`), requireAdmin(async (ctx) => {
+    const { showUserInfo } = await import('../controllers/admin/usersController.js');
+    return showUserInfo(ctx);
+  }));
 };
 
 export default registerAdminRoutes;
+
 
