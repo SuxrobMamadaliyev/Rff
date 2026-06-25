@@ -1,6 +1,5 @@
 // -----------------------------------------------------------------------------
 // User routes — TO'LIQ INLINE versiya.
-// Barcha tugmalar inline callback orqali ishlaydi.
 // -----------------------------------------------------------------------------
 import { handleStart, handleCheckSubscription, showMainMenu } from '../controllers/startController.js';
 import { startWithdraw } from '../controllers/withdrawalController.js';
@@ -45,10 +44,10 @@ export const registerUserRoutes = (bot) => {
   // ── Subscription ──────────────────────────────────────────────────────────
   bot.action(ACTIONS.CHECK_SUBSCRIPTION, handleCheckSubscription);
 
-  // ── Asosiy menyu (inline "Orqaga" tugmasi) ────────────────────────────────
+  // ── Asosiy menyu ──────────────────────────────────────────────────────────
   bot.action(ACTIONS.MENU, showMainMenu);
 
-  // ── Global cancel ─────────────────────────────────────────────────────────
+  // ── Cancel ────────────────────────────────────────────────────────────────
   bot.action(ACTIONS.CANCEL, async (ctx) => {
     await ctx.answerCbQuery('Bekor qilindi');
     const user = ctx.state.user;
@@ -67,7 +66,7 @@ export const registerUserRoutes = (bot) => {
     }
   });
 
-  // ── Asosiy menyu inline tugmalari ─────────────────────────────────────────
+  // ── Menyu tugmalari ───────────────────────────────────────────────────────
   bot.action(ACTIONS.MENU_PREMIUM, showPlans);
   bot.action(ACTIONS.MENU_BUY_STARS, showBuyStars);
   bot.action(ACTIONS.MENU_SELL_STARS, showSellStars);
@@ -93,7 +92,7 @@ export const registerUserRoutes = (bot) => {
     });
   });
 
-  // ── Cabinet inline ────────────────────────────────────────────────────────
+  // ── Cabinet ───────────────────────────────────────────────────────────────
   bot.action(ACTIONS.CABINET_PROFILE, showProfileInline);
   bot.action(ACTIONS.CABINET_REFERRAL, showReferralInline);
   bot.action(ACTIONS.CABINET_ORDERS, showOrderHistory);
@@ -101,7 +100,7 @@ export const registerUserRoutes = (bot) => {
   bot.action(ACTIONS.CABINET_WITHDRAWALS, showWithdrawalHistory);
   bot.action(ACTIONS.CABINET_WITHDRAW, startWithdrawFromCabinet);
 
-  // ── Premium flow ──────────────────────────────────────────────────────────
+  // ── Premium ───────────────────────────────────────────────────────────────
   bot.action(ACTIONS.BUY_PLAN, showPlans);
   bot.action(new RegExp(`^${ACTIONS.BUY_PLAN}:([^:]+)$`), showPlanDetails);
   bot.action(
@@ -110,7 +109,7 @@ export const registerUserRoutes = (bot) => {
   );
   bot.action(new RegExp(`^${ACTIONS.PAY_STARS}:([^:]+)$`), handleStarsInvoice);
 
-  // ── Stars to'lovi lifecycle ───────────────────────────────────────────────
+  // ── Stars to'lov lifecycle ────────────────────────────────────────────────
   bot.on('pre_checkout_query', handlePreCheckout);
   bot.on('successful_payment', handleSuccessfulPayment);
 
@@ -126,8 +125,7 @@ export const registerUserRoutes = (bot) => {
   bot.action(new RegExp(`^${ACTIONS.CONFIRM_STARS}:(buy):(\\d+)$`), confirmBuyStars);
   bot.action(new RegExp(`^${ACTIONS.CONFIRM_STARS}:(sell):(\\d+)$`), confirmSellStars);
 
-  // ── Eski reply keyboard text handler (zaxira) ─────────────────────────────
-  // Endi reply keyboard yo'q, lekin eski foydalanuvchilar uchun qoldiramiz
+  // ── Fallback text ─────────────────────────────────────────────────────────
   bot.on('text', async (ctx) => {
     const admin = isAdmin(ctx.from?.id);
     const user = ctx.state.user;
@@ -140,6 +138,7 @@ export const registerUserRoutes = (bot) => {
 };
 
 export default registerUserRoutes;
+
 
 
 
