@@ -1,7 +1,20 @@
-import { buyStarsKeyboard, sellStarsKeyboard, confirmStarsKeyboard } from '../keyboards/userKeyboards.js';
-import { notifyAdmins } from '../services/notifyService.js';
+import { buyStarsKeyboard, sellStarsKeyboard } from '../keyboards/userKeyboards.js';
 import { STARS_PRICES, SCENES } from '../utils/constants.js';
-import { formatMoney, displayName } from '../utils/helpers.js';
+import { formatMoney } from '../utils/helpers.js';
+
+/**
+ * Foydalanuvchiga Stars sotish uchun haqiqiy Telegram invoice yuboradi.
+ * Foydalanuvchi shu invoyс orqali o'z Stars'ini botga (XTR) to'laydi.
+ */
+export const sendSellStarsInvoice = (ctx, amount) =>
+  ctx.replyWithInvoice({
+    title: `${amount} ⭐ Stars sotish`,
+    description: `Siz ${amount} Stars sotmoqdasiz. To'lovni tasdiqlang — Stars botga o'tkaziladi, so'ng admin to'lovingizni yuboradi.`,
+    payload: `sell_stars:${amount}`,
+    provider_token: '',
+    currency: 'XTR',
+    prices: [{ label: `${amount} Stars`, amount }],
+  });
 
 export const showBuyStars = async (ctx) => {
   await ctx.answerCbQuery();
@@ -55,33 +68,33 @@ export const showSellStars = async (ctx) => {
   }
 };
 
+// Tugmadan miqdor tanlanganda — to'g'ridan-to'g'ri Stars invoyсi yuboriladi
 export const handleSellStarsAmount = async (ctx) => {
-  await ctx.answerCbQuery();
   const amount = parseInt(ctx.match[1], 10);
-  if (!amount || amount <= 0) return ctx.answerCbQuery('Xato miqdor', { show_alert: true });
+  if (!amount || amount <= 0) {
+    await ctx.answerCbQuery('Xato miqdor', { show_alert: true });
+    return undefined;
+  }
+  await ctx.answerCbQuery();
   const totalPrice = amount * STARS_PRICES.SELL_RATE;
-  return ctx.editMessageText(
-    `💰 <b>Tasdiqlash</b>\n\nMiqdor: <b>${amount} ⭐</b>\nOlasiz: <b>${formatMoney(totalPrice)}</b>\n\nDavom etasizmi?`,
-    { parse_mode: 'HTML', ...confirmStarsKeyboard('sell', amount) },
+  await ctx.reply(
+    `💰 <b>Stars sotish</b>\n\n⭐ Miqdor: <b>${amount} Stars</b>\n💰 Olasiz: <b>${formatMoney(totalPrice)}</b>\n\n` +
+    `Quyidagi invoysni to'lab, Stars'ingizni botga o'tkazing 👇`,
+    { parse_mode: 'HTML' },
   );
+  return sendSellStarsInvoice(ctx, amount);
 };
 
+// "Boshqa miqdor" — scene'ga kiramiz, u yerda foydalanuvchi raqam kiritadi
 export const handleSellStarsCustom = async (ctx) => {
   await ctx.answerCbQuery();
   return ctx.scene.enter(SCENES.STARS_SELL);
 };
 
+// Eski tasdiqlash tugmasi — endi ishlatilmaydi, fallback sifatida invoys yuboradi
 export const confirmSellStars = async (ctx) => {
-  await ctx.answerCbQuery("✅ So'rov yuborildi");
   const amount = parseInt(ctx.match[2], 10);
-  const totalPrice = amount * STARS_PRICES.SELL_RATE;
-  const user = ctx.state.user;
-  await ctx.editMessageText(
-    `✅ <b>Qabul qilindi!</b>\n\n⭐ Miqdor: <b>${amount} Stars</b>\n💰 Olasiz: <b>${formatMoney(totalPrice)}</b>\n\nAdmin siz bilan bog'lanadi.`,
-    { parse_mode: 'HTML' },
-  );
-  await notifyAdmins(
-    ctx.telegram,
-    `💰 <b>Stars sotish</b>\n\n👤 ${displayName(user)} (<code>${user.telegramId}</code>)\n⭐ ${amount} Stars\n💰 ${formatMoney(totalPrice)}`,
-  );
+  await ctx.answerCbQuery();
+  if (!amount || amount <= 0) return undefined;
+  return sendSellStarsInvoice(ctx, amount);
 };
