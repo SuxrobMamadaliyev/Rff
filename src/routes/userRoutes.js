@@ -16,7 +16,8 @@ import {
 import {
   showPlans,
   showPlanDetails,
-  handlePaymentMethod,
+  handleCardPayment,
+  handleCardSentCheck,
   handleStarsInvoice,
   handlePreCheckout,
   handleSuccessfulPayment,
@@ -103,10 +104,14 @@ export const registerUserRoutes = (bot) => {
   // ── Premium ───────────────────────────────────────────────────────────────
   bot.action(ACTIONS.BUY_PLAN, showPlans);
   bot.action(new RegExp(`^${ACTIONS.BUY_PLAN}:([^:]+)$`), showPlanDetails);
-  bot.action(
-    new RegExp(`^${ACTIONS.PAY_METHOD}:([^:]+):([^:]+)(?::(confirm))?$`),
-    handlePaymentMethod,
-  );
+
+  // Admin kartasi
+  bot.action(new RegExp(`^${ACTIONS.PAY_CARD}:([^:]+)$`), handleCardPayment);
+
+  // "Tashladim" — chek yuborish scene'iga kirish
+  bot.action(new RegExp(`^${ACTIONS.CARD_SENT_CHECK}:([^:]+)$`), handleCardSentCheck);
+
+  // Stars (avto to'lov)
   bot.action(new RegExp(`^${ACTIONS.PAY_STARS}:([^:]+)$`), handleStarsInvoice);
 
   // ── Stars to'lov lifecycle ────────────────────────────────────────────────
@@ -138,8 +143,3 @@ export const registerUserRoutes = (bot) => {
 };
 
 export default registerUserRoutes;
-
-
-
-
-
