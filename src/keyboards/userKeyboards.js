@@ -16,7 +16,7 @@ export const mainMenuKeyboard = (isAdmin = false) => {
       Markup.button.callback('🗄 Kabinet', ACTIONS.MENU_CABINET),
     ],
     [
-      Markup.button.callback('⭐ Stars sotib olish', ACTIONS.MENU_BUY_STARS),
+      Markup.button.callback('⭐ Stars sotib olish', ACTIONS.MENU_BUY_STARS,{style: "primary"}),
       Markup.button.callback('💰 Stars sotish', ACTIONS.MENU_SELL_STARS),
     ],
     [
