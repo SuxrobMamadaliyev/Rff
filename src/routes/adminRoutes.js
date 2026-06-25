@@ -1,43 +1,29 @@
-// -----------------------------------------------------------------------------
-// Admin routes — INLINE MENYU versiya.
-// -----------------------------------------------------------------------------
 import { requireAdmin } from '../middlewares/admin.js';
 import {
-  openPanel,
-  exitPanel,
-  enterAddBalance,
-  enterSubBalance,
-  enterBonus,
-  enterBroadcast,
-  enterForward,
-  enterBan,
-  enterUnban,
+  openPanel, exitPanel,
+  enterAddBalance, enterSubBalance, enterBonus,
+  enterBroadcast, enterForward, enterBan, enterUnban,
 } from '../controllers/admin/adminController.js';
 import { showStatistics } from '../controllers/admin/statsController.js';
 import { listUsers } from '../controllers/admin/usersController.js';
 import { listPayments, listOrders } from '../controllers/admin/listController.js';
+import { showSettings, toggleSubscription, toggleBot } from '../controllers/admin/settingsController.js';
 import {
-  showSettings,
-  toggleSubscription,
-  toggleBot,
-} from '../controllers/admin/settingsController.js';
-import {
-  confirmOrder,
-  declineOrder,
-  confirmWithdrawal,
-  declineWithdrawal,
-  replyTicket,
-  closeTicketHandler,
+  confirmOrder, declineOrder,
+  confirmWithdrawal, declineWithdrawal,
+  replyTicket, closeTicketHandler,
 } from '../controllers/admin/moderationController.js';
 import { ADMIN_BUTTONS, ACTIONS } from '../utils/constants.js';
 
 export const registerAdminRoutes = (bot) => {
-  // Admin panel — inline callback orqali
-  bot.action(ACTIONS.MENU_ADMIN, requireAdmin(openPanel));
-  // Zaxira: /admin command
+  // Admin panel — INLINE callback
+  bot.action(ACTIONS.MENU_ADMIN, requireAdmin(async (ctx) => {
+    await ctx.answerCbQuery();
+    return openPanel(ctx);
+  }));
   bot.command('admin', requireAdmin(openPanel));
 
-  // Admin reply keyboard (admin panel ichida hali reply keyboard ishlatiladi)
+  // Admin panel ichidagi REPLY tugmalar
   bot.hears(ADMIN_BUTTONS.EXIT, requireAdmin(exitPanel));
   bot.hears(ADMIN_BUTTONS.STATS, requireAdmin(showStatistics));
   bot.hears(ADMIN_BUTTONS.USERS, requireAdmin(listUsers));
@@ -61,12 +47,9 @@ export const registerAdminRoutes = (bot) => {
   bot.action(new RegExp(`^${ACTIONS.REJECT_WITHDRAW}:(.+)$`), requireAdmin(declineWithdrawal));
   bot.action(new RegExp(`^${ACTIONS.REPLY_TICKET}:(.+)$`), requireAdmin(replyTicket));
   bot.action(new RegExp(`^${ACTIONS.CLOSE_TICKET}:(.+)$`), requireAdmin(closeTicketHandler));
-  bot.action(new RegExp(`^${ACTIONS.ADMIN_USER_INFO}:(.+)$`), requireAdmin(async (ctx) => {
-    const { showUserInfo } = await import('../controllers/admin/usersController.js');
-    return showUserInfo(ctx);
-  }));
 };
 
 export default registerAdminRoutes;
+
 
 
