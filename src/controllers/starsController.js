@@ -1,14 +1,16 @@
 import { buyStarsKeyboard, sellStarsKeyboard, confirmStarsKeyboard } from '../keyboards/userKeyboards.js';
 import { notifyAdmins } from '../services/notifyService.js';
-import { ACTIONS, STARS_PRICES, SCENES } from '../utils/constants.js';
+import { STARS_PRICES, SCENES } from '../utils/constants.js';
 import { formatMoney, displayName } from '../utils/helpers.js';
 
 export const showBuyStars = async (ctx) => {
-  if (ctx.callbackQuery) await ctx.answerCbQuery();
-  return ctx.reply(
-    `⭐ <b>Stars sotib olish</b>\n\nNarx: <b>1 Stars = ${STARS_PRICES.BUY_RATE.toLocaleString('ru-RU')} so'm</b>\n\nMiqdorni tanlang 👇`,
-    { parse_mode: 'HTML', ...buyStarsKeyboard() },
-  );
+  await ctx.answerCbQuery();
+  const text = `⭐ <b>Stars sotib olish</b>\n\nNarx: <b>1 Stars = ${STARS_PRICES.BUY_RATE.toLocaleString('ru-RU')} so'm</b>\n\nMiqdorni tanlang 👇`;
+  try {
+    return await ctx.editMessageText(text, { parse_mode: 'HTML', ...buyStarsKeyboard() });
+  } catch (_err) {
+    return ctx.reply(text, { parse_mode: 'HTML', ...buyStarsKeyboard() });
+  }
 };
 
 export const handleBuyStarsAmount = async (ctx) => {
@@ -42,11 +44,13 @@ export const confirmBuyStars = async (ctx) => {
 };
 
 export const showSellStars = async (ctx) => {
-  if (ctx.callbackQuery) await ctx.answerCbQuery();
-  return ctx.reply(
-    `💰 <b>Stars sotish</b>\n\nNarx: <b>1 Stars = ${STARS_PRICES.SELL_RATE.toLocaleString('ru-RU')} so'm</b>\n\nMiqdorni tanlang 👇`,
-    { parse_mode: 'HTML', ...sellStarsKeyboard() },
-  );
+  await ctx.answerCbQuery();
+  const text = `💰 <b>Stars sotish</b>\n\nNarx: <b>1 Stars = ${STARS_PRICES.SELL_RATE.toLocaleString('ru-RU')} so'm</b>\n\nMiqdorni tanlang 👇`;
+  try {
+    return await ctx.editMessageText(text, { parse_mode: 'HTML', ...sellStarsKeyboard() });
+  } catch (_err) {
+    return ctx.reply(text, { parse_mode: 'HTML', ...sellStarsKeyboard() });
+  }
 };
 
 export const handleSellStarsAmount = async (ctx) => {
@@ -78,4 +82,5 @@ export const confirmSellStars = async (ctx) => {
     `💰 <b>Stars sotish</b>\n\n👤 ${displayName(user)} (<code>${user.telegramId}</code>)\n⭐ ${amount} Stars\n💰 ${formatMoney(totalPrice)}`,
   );
 };
+
 
