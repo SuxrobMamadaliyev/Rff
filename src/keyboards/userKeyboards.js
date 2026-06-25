@@ -12,26 +12,35 @@ import { ACTIONS, PAYMENT_METHODS } from '../utils/constants.js';
 export const mainMenuKeyboard = (isAdmin = false) => {
   const rows = [
     [
-      Markup.button.callback('⭐ Premium sotib olish', ACTIONS.MENU_PREMIUM),
-      Markup.button.callback('🗄 Kabinet', ACTIONS.MENU_CABINET),
+      // Ko'k rangli tugma (primary)
+      { text: '⭐ Premium sotib olish', callback_data: ACTIONS.MENU_PREMIUM, style: "primary" },
+      // Oddiy (rangsiz) tugma
+      { text: '🗄 Kabinet', callback_data: ACTIONS.MENU_CABINET },
     ],
     [
-      Markup.button.callback('⭐ Stars sotib olish', ACTIONS.MENU_BUY_STARS,{style: "primary"}),
-      Markup.button.callback('💰 Stars sotish', ACTIONS.MENU_SELL_STARS),
+      // Yashil rangli tugma (success)
+      { text: '⭐ Stars sotib olish', callback_data: ACTIONS.MENU_BUY_STARS, style: "success" },
+      // Qizil rangli tugma (danger)
+      { text: '💰 Stars sotish', callback_data: ACTIONS.MENU_SELL_STARS, style: "danger" },
     ],
     [
-      Markup.button.callback('👥 Referal', ACTIONS.MENU_REFERRAL),
-      Markup.button.callback('💳 Pul yechish', ACTIONS.MENU_WITHDRAW),
+      { text: '👥 Referal', callback_data: ACTIONS.MENU_REFERRAL },
+      { text: '💳 Pul yechish', callback_data: ACTIONS.MENU_WITHDRAW },
     ],
     [
-      Markup.button.callback('📞 Admin bilan bog\'lanish', ACTIONS.MENU_CONTACT),
+      { text: '📞 Admin bilan bog\'lanish', callback_data: ACTIONS.MENU_CONTACT },
     ],
   ];
+
   if (isAdmin) {
-    rows.push([Markup.button.callback('🛠 Admin panel', ACTIONS.MENU_ADMIN)]);
+    rows.push([
+      { text: '🛠 Admin panel', callback_data: ACTIONS.MENU_ADMIN }
+    ]);
   }
+
   return Markup.inlineKeyboard(rows);
 };
+
 
 /**
  * Menyu xabari uchun matn.
