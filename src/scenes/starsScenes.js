@@ -4,7 +4,7 @@
 // Stars SOTISH: miqdor → tasdiqlash → admin xabari
 // -----------------------------------------------------------------------------
 import { Scenes } from 'telegraf';
-import { cancelKeyboard, confirmStarsKeyboard, mainMenuKeyboard } from '../keyboards/userKeyboards.js';
+import { cancelKeyboard, mainMenuKeyboard } from '../keyboards/userKeyboards.js';
 import { notifyAdmins } from '../services/notifyService.js';
 import { isAdmin } from '../config/index.js';
 import config from '../config/index.js';
@@ -193,15 +193,24 @@ export const starsSellScene = new Scenes.WizardScene(
     }
 
     const totalPrice = amount * STARS_PRICES.SELL_RATE;
-    ctx.wizard.state.amount = amount;
 
     await ctx.reply(
-      `💰 <b>Tasdiqlash</b>\n\n` +
-      `Miqdor: <b>${amount} Stars</b>\n` +
-      `Olasiz: <b>${formatMoney(totalPrice)}</b>\n\n` +
-      `Davom etasizmi?`,
-      { parse_mode: 'HTML', ...confirmStarsKeyboard('sell', amount) },
+      `💰 <b>Stars sotish</b>\n\n` +
+      `⭐ Miqdor: <b>${amount} Stars</b>\n` +
+      `💰 Olasiz: <b>${formatMoney(totalPrice)}</b>\n\n` +
+      `Quyidagi invoysni to'lab, Stars'ingizni botga o'tkazing 👇`,
+      { parse_mode: 'HTML' },
     );
+
+    await ctx.replyWithInvoice({
+      title: `${amount} ⭐ Stars sotish`,
+      description: `Siz ${amount} Stars sotmoqdasiz. To'lovni tasdiqlang — Stars botga o'tkaziladi, so'ng admin to'lovingizni yuboradi.`,
+      payload: `sell_stars:${amount}`,
+      provider_token: '',
+      currency: 'XTR',
+      prices: [{ label: `${amount} Stars`, amount }],
+    });
+
     return ctx.scene.leave();
   },
 );
