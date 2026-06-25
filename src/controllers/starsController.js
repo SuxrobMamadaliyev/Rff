@@ -5,7 +5,10 @@ import { formatMoney, displayName } from '../utils/helpers.js';
 
 export const showBuyStars = async (ctx) => {
   await ctx.answerCbQuery();
-  const text = `⭐ <b>Stars sotib olish</b>\n\nNarx: <b>1 Stars = ${STARS_PRICES.BUY_RATE.toLocaleString('ru-RU')} so'm</b>\n\nMiqdorni tanlang 👇`;
+  const text =
+    `⭐ <b>Stars sotib olish</b>\n\n` +
+    `Narx: <b>1 Stars = ${STARS_PRICES.BUY_RATE.toLocaleString('ru-RU')} so'm</b>\n\n` +
+    `Miqdorni tanlang yoki o'zingiz kiriting 👇`;
   try {
     return await ctx.editMessageText(text, { parse_mode: 'HTML', ...buyStarsKeyboard() });
   } catch (_err) {
@@ -13,39 +16,38 @@ export const showBuyStars = async (ctx) => {
   }
 };
 
+// Tugmadan miqdor tanlanganda — scene'ga kirib miqdorni saqlaymiz
 export const handleBuyStarsAmount = async (ctx) => {
   await ctx.answerCbQuery();
   const amount = parseInt(ctx.match[1], 10);
-  if (!amount || amount <= 0) return ctx.answerCbQuery('Xato miqdor', { show_alert: true });
-  const totalPrice = amount * STARS_PRICES.BUY_RATE;
-  return ctx.editMessageText(
-    `⭐ <b>Tasdiqlash</b>\n\nMiqdor: <b>${amount} ⭐</b>\nNarx: <b>${formatMoney(totalPrice)}</b>\n\nDavom etasizmi?`,
-    { parse_mode: 'HTML', ...confirmStarsKeyboard('buy', amount) },
-  );
+  if (!amount || amount <= 0) {
+    await ctx.answerCbQuery('Xato miqdor', { show_alert: true });
+    return undefined;
+  }
+  // Scene'ga o'tamiz, miqdorni state orqali beramiz
+  return ctx.scene.enter(SCENES.STARS_BUY, { presetAmount: amount });
 };
 
+// "Boshqa miqdor" — scene'ga oddiy kiramiz
 export const handleBuyStarsCustom = async (ctx) => {
   await ctx.answerCbQuery();
   return ctx.scene.enter(SCENES.STARS_BUY);
 };
 
+// Eski confirm — scene ichida hal qilinadi, saqlab qo'yamiz fallback sifatida
 export const confirmBuyStars = async (ctx) => {
-  await ctx.answerCbQuery("✅ So'rov yuborildi");
-  const amount = parseInt(ctx.match[2], 10);
-  const totalPrice = amount * STARS_PRICES.BUY_RATE;
-  const user = ctx.state.user;
-  await ctx.editMessageText(
-    `✅ <b>Qabul qilindi!</b>\n\n⭐ Miqdor: <b>${amount} Stars</b>\n💰 To'lov: <b>${formatMoney(totalPrice)}</b>\n\nAdmin bilan bog'laning.`,
-    { parse_mode: 'HTML' },
-  );
-  await notifyAdmins(ctx.telegram,
-    `⭐ <b>Stars sotib olish</b>\n\n👤 ${displayName(user)} (<code>${user.telegramId}</code>)\n⭐ ${amount} Stars\n💰 ${formatMoney(totalPrice)}`,
-  );
+  await ctx.answerCbQuery();
+  return ctx.scene.enter(SCENES.STARS_BUY);
 };
+
+// ─── SOTISH ───────────────────────────────────────────────────────────────────
 
 export const showSellStars = async (ctx) => {
   await ctx.answerCbQuery();
-  const text = `💰 <b>Stars sotish</b>\n\nNarx: <b>1 Stars = ${STARS_PRICES.SELL_RATE.toLocaleString('ru-RU')} so'm</b>\n\nMiqdorni tanlang 👇`;
+  const text =
+    `💰 <b>Stars sotish</b>\n\n` +
+    `Narx: <b>1 Stars = ${STARS_PRICES.SELL_RATE.toLocaleString('ru-RU')} so'm</b>\n\n` +
+    `Miqdorni tanlang 👇`;
   try {
     return await ctx.editMessageText(text, { parse_mode: 'HTML', ...sellStarsKeyboard() });
   } catch (_err) {
@@ -78,9 +80,8 @@ export const confirmSellStars = async (ctx) => {
     `✅ <b>Qabul qilindi!</b>\n\n⭐ Miqdor: <b>${amount} Stars</b>\n💰 Olasiz: <b>${formatMoney(totalPrice)}</b>\n\nAdmin siz bilan bog'lanadi.`,
     { parse_mode: 'HTML' },
   );
-  await notifyAdmins(ctx.telegram,
+  await notifyAdmins(
+    ctx.telegram,
     `💰 <b>Stars sotish</b>\n\n👤 ${displayName(user)} (<code>${user.telegramId}</code>)\n⭐ ${amount} Stars\n💰 ${formatMoney(totalPrice)}`,
   );
 };
-
-
