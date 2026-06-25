@@ -12,35 +12,36 @@ import { ACTIONS, PAYMENT_METHODS } from '../utils/constants.js';
 export const mainMenuKeyboard = (isAdmin = false) => {
   const rows = [
     [
-      // Premium olish - Ko'k, Kabinet - Yashil
+      // 1-qator: Premium sotib olish (Ko'k) va Referal (Ko'k)
       { text: '⭐ Premium sotib olish', callback_data: ACTIONS.MENU_PREMIUM, style: "primary" },
+      { text: '👥 Referal', callback_data: ACTIONS.MENU_REFERRAL, style: "primary" },
+    ],
+    [
+      // 2-qator: Stars sotib olish (Yashil) va Kabinet (Yashil)
+      { text: '⭐ Stars sotib olish', callback_data: ACTIONS.MENU_BUY_STARS, style: "success" },
       { text: '🗄 Kabinet', callback_data: ACTIONS.MENU_CABINET, style: "success" },
     ],
     [
-      // Stars olish - Yashil, Stars sotish - Qizil
-      { text: '⭐ Stars sotib olish', callback_data: ACTIONS.MENU_BUY_STARS, style: "success" },
+      // 3-qator: Stars sotish (Qizil) va Pul yechish (Qizil)
       { text: '💰 Stars sotish', callback_data: ACTIONS.MENU_SELL_STARS, style: "danger" },
-    ],
-    [
-      // Referal - Ko'k, Pul yechish - Qizil
-      { text: '👥 Referal', callback_data: ACTIONS.MENU_REFERRAL, style: "primary" },
       { text: '💳 Pul yechish', callback_data: ACTIONS.MENU_WITHDRAW, style: "danger" },
     ],
     [
-      // Aloqa - Ko'k
+      // 4-qator: Admin bilan bog'lanish (Ko'k)
       { text: '📞 Admin bilan bog\'lanish', callback_data: ACTIONS.MENU_CONTACT, style: "primary" },
     ],
   ];
 
   if (isAdmin) {
     rows.push([
-      // Admin panel - Tizim boshqaruvi bo'lgani uchun Qizil
+      // Admin panel (Qizil)
       { text: '🛠 Admin panel', callback_data: ACTIONS.MENU_ADMIN, style: "danger" }
     ]);
   }
 
   return Markup.inlineKeyboard(rows);
 };
+
 
 
 
