@@ -12,7 +12,7 @@ import { ACTIONS, PAYMENT_METHODS } from '../utils/constants.js';
 export const mainMenuKeyboard = (isAdmin = false) => {
   const rows = [
     [
-      Markup.button.callback('⭐ Premium sotib olish', ACTIONS.MENU_PREMIUM, style: "primary"),
+      Markup.button.callback('⭐ Premium sotib olish', ACTIONS.MENU_PREMIUM,{style: "primary"}),
       Markup.button.callback('🗄 Kabinet', ACTIONS.MENU_CABINET),
     ],
     [
