@@ -46,6 +46,9 @@ export const ACTIONS = {
   BUY_PLAN: 'buy',
   PAY_METHOD: 'pay',
   PAY_STARS: 'stars',
+  // Admin karta to'lovi
+  PAY_CARD: 'pay_card',
+  CARD_SENT_CHECK: 'card_check',
   // Admin moderation
   CONFIRM_ORDER: 'order_ok',
   REJECT_ORDER: 'order_no',
@@ -71,19 +74,13 @@ export const ACTIONS = {
 };
 
 export const PAYMENT_METHODS = {
-  CLICK: 'click',
-  PAYME: 'payme',
-  UZUM: 'uzum',
   STARS: 'stars',
-  BALANCE: 'balance',
+  CARD: 'card',
 };
 
 export const PAYMENT_METHOD_LABELS = {
-  [PAYMENT_METHODS.CLICK]: 'Click',
-  [PAYMENT_METHODS.PAYME]: 'Payme',
-  [PAYMENT_METHODS.UZUM]: 'Uzum Bank',
   [PAYMENT_METHODS.STARS]: 'Telegram Stars',
-  [PAYMENT_METHODS.BALANCE]: 'Balans',
+  [PAYMENT_METHODS.CARD]: 'Admin kartasi',
 };
 
 export const ORDER_STATUS = {
@@ -135,12 +132,14 @@ export const SCENES = {
   ADMIN_BAN: 'admin_ban_scene',
   ADMIN_UNBAN: 'admin_unban_scene',
   ADMIN_REPLY_TICKET: 'admin_reply_ticket_scene',
+  CARD_CHECK_SCENE: 'card_check_scene',
 };
 
 export const STARS_PRICES = {
   BUY_RATE: 130,
   SELL_RATE: 110,
 };
+
 
 
 
