@@ -1,53 +1,166 @@
 // -----------------------------------------------------------------------------
-// Stars sotib olish va sotish uchun wizard scene'lar (boshqa miqdor kiritish).
+// Stars sotib olish va sotish uchun wizard scene'lar.
+// Stars SOTIB OLISH: miqdor → username → karta ma'lumotlari → chek → admin xabari
+// Stars SOTISH: miqdor → tasdiqlash → admin xabari
 // -----------------------------------------------------------------------------
 import { Scenes } from 'telegraf';
-import { adminCancelKeyboard } from '../keyboards/adminKeyboards.js';
 import { cancelKeyboard, confirmStarsKeyboard, mainMenuKeyboard } from '../keyboards/userKeyboards.js';
 import { notifyAdmins } from '../services/notifyService.js';
 import { isAdmin } from '../config/index.js';
+import config from '../config/index.js';
 import { SCENES, STARS_PRICES } from '../utils/constants.js';
-import { formatMoney, displayName } from '../utils/helpers.js';
+import { formatMoney, displayName, escapeHtml } from '../utils/helpers.js';
 
 // ─── Stars SOTIB OLISH scene ──────────────────────────────────────────────────
 export const starsBuyScene = new Scenes.WizardScene(
   SCENES.STARS_BUY,
 
-  // Step 0: miqdor so'rash
+  // Step 0: miqdor so'rash (yoki presetAmount bo'lsa o'tkazib yuborish)
   async (ctx) => {
+    // Tugmadan kelgan miqdor (handleBuyStarsAmount orqali)
+    const preset = ctx.scene.state?.presetAmount;
+    if (preset && preset > 0) {
+      const totalPrice = preset * STARS_PRICES.BUY_RATE;
+      ctx.wizard.state.amount = preset;
+      ctx.wizard.state.totalPrice = totalPrice;
+      await ctx.reply(
+        `✅ Miqdor: <b>${preset} ⭐</b> | To'lov: <b>${formatMoney(totalPrice)}</b>\n\n` +
+        `📱 Telegram <b>username</b>ingizni yuboring\n` +
+        `<i>(Stars shu akkauntga yuboriladi, masalan: @username)</i>`,
+        { parse_mode: 'HTML', ...cancelKeyboard() },
+      );
+      // Step 1 ni o'tkazib, step 2 ga o'tamiz
+      ctx.wizard.next(); // step 1
+      return ctx.wizard.next(); // step 2 ga o'tamiz
+    }
+
     await ctx.reply(
       `⭐ <b>Stars sotib olish</b>\n\n` +
       `Narx: <b>1 Stars = ${STARS_PRICES.BUY_RATE.toLocaleString('ru-RU')} so'm</b>\n\n` +
-      `Nechta Stars sotib olmoqchisiz? (raqam kiriting, masalan: 150)`,
+      `Nechta Stars sotib olmoqchisiz?\n<i>(Raqam kiriting, masalan: 150)</i>`,
       { parse_mode: 'HTML', ...cancelKeyboard() },
     );
     return ctx.wizard.next();
   },
 
-  // Step 1: miqdorni tekshirish va tasdiqlash
+  // Step 1: miqdor qabul qilish → username so'rash
   async (ctx) => {
     const text = ctx.message?.text?.trim();
     const amount = parseInt(text, 10);
 
     if (!amount || amount <= 0 || !Number.isFinite(amount)) {
-      await ctx.reply('❌ Noto\'g\'ri miqdor. Musbat butun son kiriting:', cancelKeyboard());
+      await ctx.reply('❌ Noto\'g\'ri miqdor. Musbat butun son kiriting:', { parse_mode: 'HTML', ...cancelKeyboard() });
       return undefined;
     }
     if (amount < 10) {
-      await ctx.reply('❌ Minimal miqdor: 10 Stars. Qaytadan kiriting:', cancelKeyboard());
+      await ctx.reply('❌ Minimal miqdor: 10 Stars. Qaytadan kiriting:', { parse_mode: 'HTML', ...cancelKeyboard() });
       return undefined;
     }
 
     const totalPrice = amount * STARS_PRICES.BUY_RATE;
     ctx.wizard.state.amount = amount;
+    ctx.wizard.state.totalPrice = totalPrice;
 
     await ctx.reply(
-      `⭐ <b>Tasdiqlash</b>\n\n` +
-      `Miqdor: <b>${amount} Stars</b>\n` +
-      `To'lov: <b>${formatMoney(totalPrice)}</b>\n\n` +
-      `Davom etasizmi?`,
-      { parse_mode: 'HTML', ...confirmStarsKeyboard('buy', amount) },
+      `✅ Miqdor: <b>${amount} ⭐</b> | To'lov: <b>${formatMoney(totalPrice)}</b>\n\n` +
+      `📱 Telegram <b>username</b>ingizni yuboring\n` +
+      `<i>(Stars shu akkauntga yuboriladi, masalan: @username)</i>`,
+      { parse_mode: 'HTML', ...cancelKeyboard() },
     );
+    return ctx.wizard.next();
+  },
+
+  // Step 2: username qabul qilish → karta ma'lumotlari ko'rsatish
+  async (ctx) => {
+    const text = ctx.message?.text?.trim();
+    if (!text) {
+      await ctx.reply('❌ Username yuboring:', { parse_mode: 'HTML', ...cancelKeyboard() });
+      return undefined;
+    }
+
+    const username = text.startsWith('@') ? text : `@${text}`;
+    ctx.wizard.state.username = username;
+
+    const { amount, totalPrice } = ctx.wizard.state;
+
+    await ctx.reply(
+      `💳 <b>To'lov ma'lumotlari</b>\n\n` +
+      `⭐ Miqdor: <b>${amount} Stars</b>\n` +
+      `📱 Username: <b>${escapeHtml(username)}</b>\n` +
+      `💰 To'lov summasi: <b>${formatMoney(totalPrice)}</b>\n\n` +
+      `Quyidagi karta raqamiga o'tkazing:\n\n` +
+      `💳 <code>${escapeHtml(config.payments.cardNumber)}</code>\n` +
+      `👤 <b>${escapeHtml(config.payments.cardHolder)}</b>\n\n` +
+      `To'lovni amalga oshirgach, chek (screenshot) yuboring 👇`,
+      { parse_mode: 'HTML', ...cancelKeyboard() },
+    );
+    return ctx.wizard.next();
+  },
+
+  // Step 3: chek (rasm yoki fayl) kutish → admin xabari
+  async (ctx) => {
+    const hasPhoto = ctx.message?.photo;
+    const hasDoc = ctx.message?.document;
+
+    if (!hasPhoto && !hasDoc) {
+      await ctx.reply(
+        '📸 Iltimos, to\'lov chekini <b>rasm</b> yoki <b>fayl</b> ko\'rinishida yuboring:',
+        { parse_mode: 'HTML', ...cancelKeyboard() },
+      );
+      return undefined;
+    }
+
+    const { amount, totalPrice, username } = ctx.wizard.state;
+    const user = ctx.state.user;
+
+    // Foydalanuvchiga tasdiqlash
+    await ctx.reply(
+      `✅ <b>Chekingiz qabul qilindi!</b>\n\n` +
+      `⭐ Miqdor: <b>${amount} Stars</b>\n` +
+      `📱 Username: <b>${escapeHtml(username)}</b>\n` +
+      `💰 To'lov: <b>${formatMoney(totalPrice)}</b>\n\n` +
+      `Admin chekni tekshirib, Stars yuboradi. Tez orada xabar olasiz! 🙏`,
+      { parse_mode: 'HTML', ...mainMenuKeyboard(isAdmin(ctx.from.id)) },
+    );
+
+    // Adminga matn
+    const adminText =
+      `⭐ <b>Stars sotib olish so'rovi</b>\n\n` +
+      `👤 Foydalanuvchi: ${displayName(user)} (<code>${user.telegramId}</code>)\n` +
+      `📱 Stars yuborish: <b>${escapeHtml(username)}</b>\n` +
+      `⭐ Miqdor: <b>${amount} Stars</b>\n` +
+      `💰 To'lov: <b>${formatMoney(totalPrice)}</b>\n\n` +
+      `📸 Chek quyida ↓`;
+
+    await notifyAdmins(ctx.telegram, adminText);
+
+    // Adminga chek yuborish
+    try {
+      if (hasPhoto) {
+        const fileId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
+        const caption = (ctx.message.caption || '').trim();
+        for (const adminId of config.adminIds) {
+          try {
+            await ctx.telegram.sendPhoto(adminId, fileId, {
+              caption: `📸 Chek | ${amount}⭐ → ${username}${caption ? '\n' + caption : ''}`,
+              parse_mode: 'HTML',
+            });
+          } catch (_) {}
+        }
+      } else {
+        const fileId = ctx.message.document.file_id;
+        const caption = (ctx.message.caption || '').trim();
+        for (const adminId of config.adminIds) {
+          try {
+            await ctx.telegram.sendDocument(adminId, fileId, {
+              caption: `📄 Chek | ${amount}⭐ → ${username}${caption ? '\n' + caption : ''}`,
+              parse_mode: 'HTML',
+            });
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+
     return ctx.scene.leave();
   },
 );
@@ -56,7 +169,6 @@ export const starsBuyScene = new Scenes.WizardScene(
 export const starsSellScene = new Scenes.WizardScene(
   SCENES.STARS_SELL,
 
-  // Step 0: miqdor so'rash
   async (ctx) => {
     await ctx.reply(
       `💰 <b>Stars sotish</b>\n\n` +
@@ -67,7 +179,6 @@ export const starsSellScene = new Scenes.WizardScene(
     return ctx.wizard.next();
   },
 
-  // Step 1: miqdorni tekshirish va tasdiqlash
   async (ctx) => {
     const text = ctx.message?.text?.trim();
     const amount = parseInt(text, 10);
