@@ -11,8 +11,16 @@ import {
   completeOrder,
 } from '../services/orderService.js';
 import { notifyAdmins } from '../services/notifyService.js';
-import { findPlan, escapeHtml, formatMoney } from '../utils/helpers.js';
-import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, SCENES } from '../utils/constants.js';
+import { findPlan, escapeHtml, formatMoney, displayName } from '../utils/helpers.js';
+import {
+  PAYMENT_METHODS,
+  PAYMENT_METHOD_LABELS,
+  SCENES,
+  STARS_PRICES,
+  TRANSACTION_TYPE,
+  PAYMENT_STATUS,
+} from '../utils/constants.js';
+import Payment from '../models/Payment.js';
 import { isAdmin } from '../config/index.js';
 import config from '../config/index.js';
 import messages from '../utils/messages.js';
@@ -118,7 +126,46 @@ export const handlePreCheckout = (ctx) => ctx.answerPreCheckoutQuery(true);
 
 export const handleSuccessfulPayment = async (ctx) => {
   const payment = ctx.message.successful_payment;
-  const [, planKey] = (payment?.invoice_payload || '').split(':');
+  const payload = payment?.invoice_payload || '';
+
+  // ── Stars SOTISH to'lovi (foydalanuvchi Stars'ini botga o'tkazdi) ─────────
+  if (payload.startsWith('sell_stars:')) {
+    const [, amountStr] = payload.split(':');
+    const amount = parseInt(amountStr, 10) || payment.total_amount;
+    const totalPrice = amount * STARS_PRICES.SELL_RATE;
+    const user = ctx.state.user;
+
+    await Payment.create({
+      telegramId: ctx.from.id,
+      amount: totalPrice,
+      direction: 'debit',
+      type: TRANSACTION_TYPE.STARS_SELL,
+      method: PAYMENT_METHODS.STARS,
+      status: PAYMENT_STATUS.CONFIRMED,
+      description: `Stars sotish: ${amount} ⭐`,
+    });
+
+    await ctx.reply(
+      `✅ <b>Stars qabul qilindi!</b>\n\n` +
+      `⭐ Miqdor: <b>${amount} Stars</b>\n` +
+      `💰 Sizga to'lanadi: <b>${formatMoney(totalPrice)}</b>\n\n` +
+      `Admin tez orada to'lovingizni yuboradi. 🙏`,
+      { parse_mode: 'HTML', ...mainMenuKeyboard(isAdmin(ctx.from.id)) },
+    );
+
+    await notifyAdmins(
+      ctx.telegram,
+      `💰 <b>Stars sotildi (to'lov qabul qilindi)</b>\n\n` +
+      `👤 Foydalanuvchi: ${displayName(user)} (<code>${user.telegramId}</code>)\n` +
+      `⭐ Miqdor: <b>${amount} Stars</b>\n` +
+      `💰 Foydalanuvchiga to'lanishi kerak: <b>${formatMoney(totalPrice)}</b>\n\n` +
+      `✅ Stars botga muvaffaqiyatli o'tkazildi. Foydalanuvchiga pulni o'tkazib, tasdiqlang.`,
+    );
+    return undefined;
+  }
+
+  // ── Premium reja to'lovi (mavjud oqim) ─────────────────────────────────────
+  const [, planKey] = payload.split(':');
   const plan = findPlan(planKey);
   if (!plan) {
     return ctx.reply("✅ To'lov qabul qilindi. Tez orada aktivatsiya qilinadi.");
@@ -136,5 +183,8 @@ export const handleSuccessfulPayment = async (ctx) => {
   );
   return undefined;
 };
+
+
+
 
 
