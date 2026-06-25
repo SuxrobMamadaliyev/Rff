@@ -1,72 +1,81 @@
-// -----------------------------------------------------------------------------
-// /start + menu controller
-// -----------------------------------------------------------------------------
-import { isAdmin } from '../config/index.js';
-import { Settings } from '../models/index.js';
-import { checkSubscription } from '../services/subscriptionService.js';
-import { setSubscribed } from '../services/userService.js';
-import {
-  mainMenuKeyboard,
-  menuText,
-  subscriptionKeyboard,
-} from '../keyboards/userKeyboards.js';
-import { displayName } from '../utils/helpers.js';
-import messages from '../utils/messages.js';
+import { buyStarsKeyboard, sellStarsKeyboard, confirmStarsKeyboard } from '../keyboards/userKeyboards.js';
+import { notifyAdmins } from '../services/notifyService.js';
+import { ACTIONS, STARS_PRICES, SCENES } from '../utils/constants.js';
+import { formatMoney, displayName } from '../utils/helpers.js';
 
-const sendMainMenu = async (ctx, admin) => {
-  const user = ctx.state.user;
-  const name = user.firstName || displayName(user);
-  try {
-    await ctx.reply('👋', { reply_markup: { remove_keyboard: true } });
-  } catch (_err) {}
-  return ctx.reply(menuText(name), {
-    parse_mode: 'HTML',
-    ...mainMenuKeyboard(admin),
-  });
+export const showBuyStars = async (ctx) => {
+  if (ctx.callbackQuery) await ctx.answerCbQuery();
+  return ctx.reply(
+    `⭐ <b>Stars sotib olish</b>\n\nNarx: <b>1 Stars = ${STARS_PRICES.BUY_RATE.toLocaleString('ru-RU')} so'm</b>\n\nMiqdorni tanlang 👇`,
+    { parse_mode: 'HTML', ...buyStarsKeyboard() },
+  );
 };
 
-export const handleStart = async (ctx) => {
-  const admin = isAdmin(ctx.from.id);
-  const settings = await Settings.getSettings();
-
-  // Faqat /start da majburiy obuna tekshiriladi
-  if (!admin && settings.subscriptionRequired) {
-    const { subscribed } = await checkSubscription(ctx.telegram, ctx.from.id);
-    if (!subscribed) {
-      await setSubscribed(ctx.from.id, false);
-      return ctx.reply(messages.mustSubscribe, {
-        parse_mode: 'HTML',
-        ...subscriptionKeyboard(),
-      });
-    }
-    await setSubscribed(ctx.from.id, true);
-  }
-
-  return sendMainMenu(ctx, admin);
-};
-
-// "✅ Tekshirish" tugmasi — tekshiruvsiz o'tkazadi
-export const handleCheckSubscription = async (ctx) => {
-  await ctx.answerCbQuery('✅ Tasdiqlandi!');
-  try { await ctx.deleteMessage(); } catch (_err) {}
-  return sendMainMenu(ctx, isAdmin(ctx.from.id));
-};
-
-export const showMainMenu = async (ctx) => {
+export const handleBuyStarsAmount = async (ctx) => {
   await ctx.answerCbQuery();
+  const amount = parseInt(ctx.match[1], 10);
+  if (!amount || amount <= 0) return ctx.answerCbQuery('Xato miqdor', { show_alert: true });
+  const totalPrice = amount * STARS_PRICES.BUY_RATE;
+  return ctx.editMessageText(
+    `⭐ <b>Tasdiqlash</b>\n\nMiqdor: <b>${amount} ⭐</b>\nNarx: <b>${formatMoney(totalPrice)}</b>\n\nDavom etasizmi?`,
+    { parse_mode: 'HTML', ...confirmStarsKeyboard('buy', amount) },
+  );
+};
+
+export const handleBuyStarsCustom = async (ctx) => {
+  await ctx.answerCbQuery();
+  return ctx.scene.enter(SCENES.STARS_BUY);
+};
+
+export const confirmBuyStars = async (ctx) => {
+  await ctx.answerCbQuery("✅ So'rov yuborildi");
+  const amount = parseInt(ctx.match[2], 10);
+  const totalPrice = amount * STARS_PRICES.BUY_RATE;
   const user = ctx.state.user;
-  const admin = isAdmin(ctx.from.id);
-  const name = user.firstName || displayName(user);
-  try {
-    await ctx.editMessageText(menuText(name), {
-      parse_mode: 'HTML',
-      ...mainMenuKeyboard(admin),
-    });
-  } catch (_err) {
-    await ctx.reply(menuText(name), {
-      parse_mode: 'HTML',
-      ...mainMenuKeyboard(admin),
-    });
-  }
+  await ctx.editMessageText(
+    `✅ <b>Qabul qilindi!</b>\n\n⭐ Miqdor: <b>${amount} Stars</b>\n💰 To'lov: <b>${formatMoney(totalPrice)}</b>\n\nAdmin bilan bog'laning.`,
+    { parse_mode: 'HTML' },
+  );
+  await notifyAdmins(ctx.telegram,
+    `⭐ <b>Stars sotib olish</b>\n\n👤 ${displayName(user)} (<code>${user.telegramId}</code>)\n⭐ ${amount} Stars\n💰 ${formatMoney(totalPrice)}`,
+  );
+};
+
+export const showSellStars = async (ctx) => {
+  if (ctx.callbackQuery) await ctx.answerCbQuery();
+  return ctx.reply(
+    `💰 <b>Stars sotish</b>\n\nNarx: <b>1 Stars = ${STARS_PRICES.SELL_RATE.toLocaleString('ru-RU')} so'm</b>\n\nMiqdorni tanlang 👇`,
+    { parse_mode: 'HTML', ...sellStarsKeyboard() },
+  );
+};
+
+export const handleSellStarsAmount = async (ctx) => {
+  await ctx.answerCbQuery();
+  const amount = parseInt(ctx.match[1], 10);
+  if (!amount || amount <= 0) return ctx.answerCbQuery('Xato miqdor', { show_alert: true });
+  const totalPrice = amount * STARS_PRICES.SELL_RATE;
+  return ctx.editMessageText(
+    `💰 <b>Tasdiqlash</b>\n\nMiqdor: <b>${amount} ⭐</b>\nOlasiz: <b>${formatMoney(totalPrice)}</b>\n\nDavom etasizmi?`,
+    { parse_mode: 'HTML', ...confirmStarsKeyboard('sell', amount) },
+  );
+};
+
+export const handleSellStarsCustom = async (ctx) => {
+  await ctx.answerCbQuery();
+  return ctx.scene.enter(SCENES.STARS_SELL);
+};
+
+export const confirmSellStars = async (ctx) => {
+  await ctx.answerCbQuery("✅ So'rov yuborildi");
+  const amount = parseInt(ctx.match[2], 10);
+  const totalPrice = amount * STARS_PRICES.SELL_RATE;
+  const user = ctx.state.user;
+  await ctx.editMessageText(
+    `✅ <b>Qabul qilindi!</b>\n\n⭐ Miqdor: <b>${amount} Stars</b>\n💰 Olasiz: <b>${formatMoney(totalPrice)}</b>\n\nAdmin siz bilan bog'lanadi.`,
+    { parse_mode: 'HTML' },
+  );
+  await notifyAdmins(ctx.telegram,
+    `💰 <b>Stars sotish</b>\n\n👤 ${displayName(user)} (<code>${user.telegramId}</code>)\n⭐ ${amount} Stars\n💰 ${formatMoney(totalPrice)}`,
+  );
 };
 
