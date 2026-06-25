@@ -1,12 +1,13 @@
 // -----------------------------------------------------------------------------
 // Assemble all wizard scenes into a Telegraf Stage — TO'LIQ VERSIYA.
-// Stars scene'lari qo'shildi.
+// Stars scene'lari + cardCheckScene qo'shildi.
 // -----------------------------------------------------------------------------
 import { Scenes } from 'telegraf';
 import withdrawScene from './withdrawScene.js';
 import ticketScene from './ticketScene.js';
 import adminScenes from './adminScenes.js';
 import starsScenes from './starsScenes.js';
+import cardCheckScene from './cardCheckScene.js';
 import { adminMenuKeyboard } from '../keyboards/adminKeyboards.js';
 import { mainMenuKeyboard } from '../keyboards/userKeyboards.js';
 import { isAdmin } from '../config/index.js';
@@ -19,6 +20,7 @@ export const buildStage = () => {
     ticketScene,
     ...starsScenes,
     ...adminScenes,
+    cardCheckScene,
   ]);
 
   stage.action(ACTIONS.CANCEL, async (ctx) => {
@@ -41,5 +43,6 @@ export const buildStage = () => {
 };
 
 export default buildStage;
+
 
 
