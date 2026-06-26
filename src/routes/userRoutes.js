@@ -1,6 +1,7 @@
 // -----------------------------------------------------------------------------
 // User routes — TO'LIQ INLINE versiya.
 // -----------------------------------------------------------------------------
+import { Markup } from 'telegraf';
 import { handleStart, handleCheckSubscription, showMainMenu } from '../controllers/startController.js';
 import { startWithdraw } from '../controllers/withdrawalController.js';
 import { startTicket } from '../controllers/ticketController.js';
@@ -87,9 +88,14 @@ export const registerUserRoutes = (bot) => {
     await ctx.answerCbQuery();
     const user = ctx.state.user;
     const link = buildReferralLink(user.telegramId);
+    const shareText = "Bu botda men orqali ro'yxatdan o'tsang, sen ham bonus olasan! 🎁";
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(shareText)}`;
     return ctx.reply(messages.referral(user, link), {
       parse_mode: 'HTML',
       disable_web_page_preview: true,
+      ...Markup.inlineKeyboard([
+        Markup.button.url('📤 Ulashish', shareUrl),
+      ]),
     });
   });
 
