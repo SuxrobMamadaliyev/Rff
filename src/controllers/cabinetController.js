@@ -1,3 +1,4 @@
+import { Markup } from 'telegraf';
 import { Order, Payment, Withdrawal } from '../models/index.js';
 import { cabinetKeyboard } from '../keyboards/userKeyboards.js';
 import { formatMoney, formatDate, buildReferralLink } from '../utils/helpers.js';
@@ -36,9 +37,14 @@ export const showReferralInline = async (ctx) => {
   await ctx.answerCbQuery();
   const user = ctx.state.user;
   const link = buildReferralLink(user.telegramId);
+  const shareText = "Bu botda men orqali ro'yxatdan o'tsang, sen ham bonus olasan! 🎁";
+  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(shareText)}`;
   return ctx.reply(messages.referral(user, link), {
     parse_mode: 'HTML',
     disable_web_page_preview: true,
+    ...Markup.inlineKeyboard([
+      Markup.button.url('📤 Ulashish', shareUrl),
+    ]),
   });
 };
 
