@@ -133,6 +133,7 @@ export const SCENES = {
   ADMIN_UNBAN: 'admin_unban_scene',
   ADMIN_REPLY_TICKET: 'admin_reply_ticket_scene',
   CARD_CHECK_SCENE: 'card_check_scene',
+  SELL_STARS_CARD_SCENE: 'sell_stars_card_scene',
 };
 
 export const STARS_PRICES = {
