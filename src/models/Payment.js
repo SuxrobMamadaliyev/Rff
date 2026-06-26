@@ -24,6 +24,8 @@ const paymentSchema = new Schema(
       default: PAYMENT_STATUS.CONFIRMED,
     },
     description: { type: String, default: '' },
+    // Stars sotish uchun: foydalanuvchi pul olishi kerak bo'lgan karta raqami
+    cardNumber: { type: String, default: null },
     // Optional link to a related document (order/withdrawal)
     refId: { type: Schema.Types.ObjectId, default: null },
   },
@@ -35,3 +37,4 @@ paymentSchema.index({ createdAt: -1 });
 const Payment = mongoose.model('Payment', paymentSchema);
 
 export default Payment;
+
