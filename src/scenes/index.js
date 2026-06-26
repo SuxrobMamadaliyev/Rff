@@ -8,6 +8,7 @@ import ticketScene from './ticketScene.js';
 import adminScenes from './adminScenes.js';
 import starsScenes from './starsScenes.js';
 import cardCheckScene from './cardCheckScene.js';
+import sellStarsCardScene from './sellStarsCardScene.js';
 import { adminMenuKeyboard } from '../keyboards/adminKeyboards.js';
 import { mainMenuKeyboard } from '../keyboards/userKeyboards.js';
 import { isAdmin } from '../config/index.js';
@@ -21,6 +22,7 @@ export const buildStage = () => {
     ...starsScenes,
     ...adminScenes,
     cardCheckScene,
+    sellStarsCardScene,
   ]);
 
   stage.action(ACTIONS.CANCEL, async (ctx) => {
@@ -43,6 +45,10 @@ export const buildStage = () => {
 };
 
 export default buildStage;
+
+
+
+
 
 
 
