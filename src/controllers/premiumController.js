@@ -11,7 +11,7 @@ import {
   completeOrder,
 } from '../services/orderService.js';
 import { notifyAdmins } from '../services/notifyService.js';
-import { findPlan, escapeHtml, formatMoney, displayName } from '../utils/helpers.js';
+import { findPlan, escapeHtml, formatMoney } from '../utils/helpers.js';
 import {
   PAYMENT_METHODS,
   PAYMENT_METHOD_LABELS,
@@ -133,9 +133,8 @@ export const handleSuccessfulPayment = async (ctx) => {
     const [, amountStr] = payload.split(':');
     const amount = parseInt(amountStr, 10) || payment.total_amount;
     const totalPrice = amount * STARS_PRICES.SELL_RATE;
-    const user = ctx.state.user;
 
-    await Payment.create({
+    const paymentRecord = await Payment.create({
       telegramId: ctx.from.id,
       amount: totalPrice,
       direction: 'debit',
@@ -145,23 +144,11 @@ export const handleSuccessfulPayment = async (ctx) => {
       description: `Stars sotish: ${amount} ⭐`,
     });
 
-    await ctx.reply(
-      `✅ <b>Stars qabul qilindi!</b>\n\n` +
-      `⭐ Miqdor: <b>${amount} Stars</b>\n` +
-      `💰 Sizga to'lanadi: <b>${formatMoney(totalPrice)}</b>\n\n` +
-      `Admin tez orada to'lovingizni yuboradi. 🙏`,
-      { parse_mode: 'HTML', ...mainMenuKeyboard(isAdmin(ctx.from.id)) },
-    );
-
-    await notifyAdmins(
-      ctx.telegram,
-      `💰 <b>Stars sotildi (to'lov qabul qilindi)</b>\n\n` +
-      `👤 Foydalanuvchi: ${displayName(user)} (<code>${user.telegramId}</code>)\n` +
-      `⭐ Miqdor: <b>${amount} Stars</b>\n` +
-      `💰 Foydalanuvchiga to'lanishi kerak: <b>${formatMoney(totalPrice)}</b>\n\n` +
-      `✅ Stars botga muvaffaqiyatli o'tkazildi. Foydalanuvchiga pulni o'tkazib, tasdiqlang.`,
-    );
-    return undefined;
+    return ctx.scene.enter(SCENES.SELL_STARS_CARD_SCENE, {
+      amount,
+      totalPrice,
+      paymentId: paymentRecord._id.toString(),
+    });
   }
 
   // ── Premium reja to'lovi (mavjud oqim) ─────────────────────────────────────
@@ -183,6 +170,9 @@ export const handleSuccessfulPayment = async (ctx) => {
   );
   return undefined;
 };
+
+
+
 
 
 
