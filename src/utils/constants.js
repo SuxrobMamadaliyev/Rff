@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------
-// Application wide constants — INLINE MENYU versiya.
+// Application wide constants
 // -----------------------------------------------------------------------------
 
 export const BUTTONS = {
@@ -26,6 +26,8 @@ export const ADMIN_BUTTONS = {
   PAYMENTS: '📋 To\'lovlar',
   ORDERS: '📦 Buyurtmalar',
   SETTINGS: '⚙ Sozlamalar',
+  PRICES: '💲 Narxlar',
+  CARD_INFO: '💳 Karta ma\'lumotlari',
   EXIT: '⬅️ Chiqish',
 };
 
@@ -46,7 +48,7 @@ export const ACTIONS = {
   BUY_PLAN: 'buy',
   PAY_METHOD: 'pay',
   PAY_STARS: 'stars',
-  // Admin karta to'lovi
+  // Admin karta
   PAY_CARD: 'pay_card',
   CARD_SENT_CHECK: 'card_check',
   // Admin moderation
@@ -71,6 +73,9 @@ export const ACTIONS = {
   SELL_STARS_AMOUNT: 'stars_sell',
   SELL_STARS_CUSTOM: 'stars_sell_custom',
   CONFIRM_STARS: 'stars_confirm',
+  // Admin narx o'zgartirish
+  PRICE_EDIT_PLAN: 'price_edit',
+  PRICE_EDIT_STARS_RATE: 'price_stars_rate',
 };
 
 export const PAYMENT_METHODS = {
@@ -134,13 +139,13 @@ export const SCENES = {
   ADMIN_REPLY_TICKET: 'admin_reply_ticket_scene',
   CARD_CHECK_SCENE: 'card_check_scene',
   SELL_STARS_CARD_SCENE: 'sell_stars_card_scene',
+  // Yangi narx/karta scene'lari
+  ADMIN_EDIT_PLAN_PRICE: 'admin_edit_plan_price_scene',
+  ADMIN_EDIT_STARS_RATE: 'admin_edit_stars_rate_scene',
+  ADMIN_EDIT_CARD: 'admin_edit_card_scene',
 };
 
 export const STARS_PRICES = {
   BUY_RATE: 130,
   SELL_RATE: 110,
 };
-
-
-
-
