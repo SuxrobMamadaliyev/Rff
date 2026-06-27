@@ -143,6 +143,8 @@ export const SCENES = {
   ADMIN_EDIT_PLAN_PRICE: 'admin_edit_plan_price_scene',
   ADMIN_EDIT_STARS_RATE: 'admin_edit_stars_rate_scene',
   ADMIN_EDIT_CARD: 'admin_edit_card_scene',
+  ADMIN_EDIT_REFERRAL_BONUS: 'admin_edit_referral_bonus_scene',
+  ADMIN_EDIT_MIN_WITHDRAWAL: 'admin_edit_min_withdrawal_scene',
 };
 
 export const STARS_PRICES = {
