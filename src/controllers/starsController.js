@@ -1,11 +1,17 @@
 import { buyStarsKeyboard, sellStarsKeyboard } from '../keyboards/userKeyboards.js';
 import { STARS_PRICES, SCENES } from '../utils/constants.js';
 import { formatMoney } from '../utils/helpers.js';
+import { Settings } from '../models/index.js';
 
-/**
- * Foydalanuvchiga Stars sotish uchun haqiqiy Telegram invoice yuboradi.
- * Foydalanuvchi shu invoyс orqali o'z Stars'ini botga (XTR) to'laydi.
- */
+/** Settings'dan Stars kursini olish (fallback bilan) */
+const getStarsRates = async () => {
+  const settings = await Settings.getSettings();
+  return {
+    buyRate: settings.starsBuyRate ?? STARS_PRICES.BUY_RATE,
+    sellRate: settings.starsSellRate ?? STARS_PRICES.SELL_RATE,
+  };
+};
+
 export const sendSellStarsInvoice = (ctx, amount) =>
   ctx.replyWithInvoice({
     title: `${amount} ⭐ Stars sotish`,
@@ -18,9 +24,10 @@ export const sendSellStarsInvoice = (ctx, amount) =>
 
 export const showBuyStars = async (ctx) => {
   await ctx.answerCbQuery();
+  const { buyRate } = await getStarsRates();
   const text =
     `⭐ <b>Stars sotib olish</b>\n\n` +
-    `Narx: <b>1 Stars = ${STARS_PRICES.BUY_RATE.toLocaleString('ru-RU')} so'm</b>\n\n` +
+    `Narx: <b>1 Stars = ${buyRate.toLocaleString('ru-RU')} so'm</b>\n\n` +
     `Miqdorni tanlang yoki o'zingiz kiriting 👇`;
   try {
     return await ctx.editMessageText(text, { parse_mode: 'HTML', ...buyStarsKeyboard() });
@@ -29,7 +36,6 @@ export const showBuyStars = async (ctx) => {
   }
 };
 
-// Tugmadan miqdor tanlanganda — scene'ga kirib miqdorni saqlaymiz
 export const handleBuyStarsAmount = async (ctx) => {
   await ctx.answerCbQuery();
   const amount = parseInt(ctx.match[1], 10);
@@ -37,17 +43,14 @@ export const handleBuyStarsAmount = async (ctx) => {
     await ctx.answerCbQuery('Xato miqdor', { show_alert: true });
     return undefined;
   }
-  // Scene'ga o'tamiz, miqdorni state orqali beramiz
   return ctx.scene.enter(SCENES.STARS_BUY, { presetAmount: amount });
 };
 
-// "Boshqa miqdor" — scene'ga oddiy kiramiz
 export const handleBuyStarsCustom = async (ctx) => {
   await ctx.answerCbQuery();
   return ctx.scene.enter(SCENES.STARS_BUY);
 };
 
-// Eski confirm — scene ichida hal qilinadi, saqlab qo'yamiz fallback sifatida
 export const confirmBuyStars = async (ctx) => {
   await ctx.answerCbQuery();
   return ctx.scene.enter(SCENES.STARS_BUY);
@@ -57,9 +60,10 @@ export const confirmBuyStars = async (ctx) => {
 
 export const showSellStars = async (ctx) => {
   await ctx.answerCbQuery();
+  const { sellRate } = await getStarsRates();
   const text =
     `💰 <b>Stars sotish</b>\n\n` +
-    `Narx: <b>1 Stars = ${STARS_PRICES.SELL_RATE.toLocaleString('ru-RU')} so'm</b>\n\n` +
+    `Narx: <b>1 Stars = ${sellRate.toLocaleString('ru-RU')} so'm</b>\n\n` +
     `Miqdorni tanlang 👇`;
   try {
     return await ctx.editMessageText(text, { parse_mode: 'HTML', ...sellStarsKeyboard() });
@@ -68,7 +72,6 @@ export const showSellStars = async (ctx) => {
   }
 };
 
-// Tugmadan miqdor tanlanganda — to'g'ridan-to'g'ri Stars invoyсi yuboriladi
 export const handleSellStarsAmount = async (ctx) => {
   const amount = parseInt(ctx.match[1], 10);
   if (!amount || amount <= 0) {
@@ -76,7 +79,8 @@ export const handleSellStarsAmount = async (ctx) => {
     return undefined;
   }
   await ctx.answerCbQuery();
-  const totalPrice = amount * STARS_PRICES.SELL_RATE;
+  const { sellRate } = await getStarsRates();
+  const totalPrice = amount * sellRate;
   await ctx.reply(
     `💰 <b>Stars sotish</b>\n\n⭐ Miqdor: <b>${amount} Stars</b>\n💰 Olasiz: <b>${formatMoney(totalPrice)}</b>\n\n` +
     `Quyidagi invoysni to'lab, Stars'ingizni botga o'tkazing 👇`,
@@ -85,13 +89,11 @@ export const handleSellStarsAmount = async (ctx) => {
   return sendSellStarsInvoice(ctx, amount);
 };
 
-// "Boshqa miqdor" — scene'ga kiramiz, u yerda foydalanuvchi raqam kiritadi
 export const handleSellStarsCustom = async (ctx) => {
   await ctx.answerCbQuery();
   return ctx.scene.enter(SCENES.STARS_SELL);
 };
 
-// Eski tasdiqlash tugmasi — endi ishlatilmaydi, fallback sifatida invoys yuboradi
 export const confirmSellStars = async (ctx) => {
   const amount = parseInt(ctx.match[2], 10);
   await ctx.answerCbQuery();
