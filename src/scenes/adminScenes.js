@@ -1,7 +1,6 @@
 // -----------------------------------------------------------------------------
-// Admin wizard scenes: balance add/sub, bonus, broadcast, forward, ban/unban
-// and ticket replies. Each scene is short (1-2 steps) and admin-guarded by the
-// router that enters it.
+// Admin wizard scenes: balance add/sub, bonus, broadcast, forward, ban/unban,
+// ticket replies, narx/karta o'zgartirish.
 // -----------------------------------------------------------------------------
 import { Scenes } from 'telegraf';
 import { getUser, adjustBalance, setBanned } from '../services/userService.js';
@@ -12,12 +11,12 @@ import { adminMenuKeyboard, adminCancelKeyboard } from '../keyboards/adminKeyboa
 import { parseTelegramId, formatMoney } from '../utils/helpers.js';
 import { SCENES, TRANSACTION_TYPE } from '../utils/constants.js';
 import messages from '../utils/messages.js';
+import { Settings } from '../models/index.js';
+import config from '../config/index.js';
 
-/**
- * Build a two-step "modify balance" wizard (add / subtract / bonus).
- * @param {string} sceneId
- * @param {{ sign:1|-1, type:string, verb:string }} options
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// Balans wizardlari
+// ─────────────────────────────────────────────────────────────────────────────
 const balanceScene = (sceneId, { sign, type, verb }) =>
   new Scenes.WizardScene(
     sceneId,
@@ -91,7 +90,9 @@ const bonusScene = balanceScene(SCENES.ADMIN_BONUS, {
   verb: 'bonus berdi',
 });
 
-// ---- Broadcast (text advert) ----
+// ─────────────────────────────────────────────────────────────────────────────
+// Broadcast
+// ─────────────────────────────────────────────────────────────────────────────
 const broadcastSceneWizard = new Scenes.WizardScene(
   SCENES.ADMIN_BROADCAST,
   async (ctx) => {
@@ -114,7 +115,9 @@ const broadcastSceneWizard = new Scenes.WizardScene(
   },
 );
 
-// ---- Forward (copy any message) ----
+// ─────────────────────────────────────────────────────────────────────────────
+// Forward
+// ─────────────────────────────────────────────────────────────────────────────
 const forwardSceneWizard = new Scenes.WizardScene(
   SCENES.ADMIN_FORWARD,
   async (ctx) => {
@@ -140,7 +143,9 @@ const forwardSceneWizard = new Scenes.WizardScene(
   },
 );
 
-// ---- Ban ----
+// ─────────────────────────────────────────────────────────────────────────────
+// Ban / Unban
+// ─────────────────────────────────────────────────────────────────────────────
 const banSceneWizard = new Scenes.WizardScene(
   SCENES.ADMIN_BAN,
   async (ctx) => {
@@ -167,7 +172,6 @@ const banSceneWizard = new Scenes.WizardScene(
   },
 );
 
-// ---- Unban ----
 const unbanSceneWizard = new Scenes.WizardScene(
   SCENES.ADMIN_UNBAN,
   async (ctx) => {
@@ -184,7 +188,7 @@ const unbanSceneWizard = new Scenes.WizardScene(
     if (!user) {
       await ctx.reply('❌ Foydalanuvchi topilmadi.', adminMenuKeyboard());
     } else {
-      await ctx.reply(`✅ Foydalanuvchi (<code>${id}</code>) banи yechildi.`, {
+      await ctx.reply(`✅ Foydalanuvchi (<code>${id}</code>) bani yechildi.`, {
         parse_mode: 'HTML',
         ...adminMenuKeyboard(),
       });
@@ -194,11 +198,12 @@ const unbanSceneWizard = new Scenes.WizardScene(
   },
 );
 
-// ---- Reply to a ticket ----
+// ─────────────────────────────────────────────────────────────────────────────
+// Ticket reply
+// ─────────────────────────────────────────────────────────────────────────────
 const replyTicketSceneWizard = new Scenes.WizardScene(
   SCENES.ADMIN_REPLY_TICKET,
   async (ctx) => {
-    // The ticketId is injected into scene.state by the entering handler.
     if (!ctx.scene.state.ticketId) {
       await ctx.reply('❌ Ticket aniqlanmadi.', adminMenuKeyboard());
       return ctx.scene.leave();
@@ -228,6 +233,172 @@ const replyTicketSceneWizard = new Scenes.WizardScene(
   },
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// NARX O'ZGARTIRISH — Plan (so'm + stars)
+// ─────────────────────────────────────────────────────────────────────────────
+const editPlanPriceScene = new Scenes.WizardScene(
+  SCENES.ADMIN_EDIT_PLAN_PRICE,
+  async (ctx) => {
+    const planKey = ctx.scene.state.planKey;
+    const plan = config.plans.find((p) => p.key === planKey);
+    if (!plan) {
+      await ctx.reply('❌ Tarif topilmadi.', adminMenuKeyboard());
+      return ctx.scene.leave();
+    }
+    const settings = await Settings.getSettings();
+    const override = settings.planPrices?.find((p) => p.key === planKey);
+    const currentPrice = override?.price ?? plan.price;
+
+    ctx.wizard.state.planKey = planKey;
+    ctx.wizard.state.plan = plan;
+
+    await ctx.reply(
+      `💲 <b>${plan.title}</b> — so'm narxi\n\nJoriy narx: <b>${currentPrice.toLocaleString('ru-RU')} so'm</b>\n\nYangi narxni kiriting:`,
+      { parse_mode: 'HTML', ...adminCancelKeyboard() },
+    );
+    return ctx.wizard.next();
+  },
+  async (ctx) => {
+    const price = Number(ctx.message?.text?.replace(/\s/g, ''));
+    if (!Number.isFinite(price) || price <= 0) {
+      await ctx.reply('❌ Noto\'g\'ri narx. Musbat raqam kiriting:', adminCancelKeyboard());
+      return undefined;
+    }
+    ctx.wizard.state.newPrice = price;
+
+    const settings = await Settings.getSettings();
+    const override = settings.planPrices?.find((p) => p.key === ctx.wizard.state.planKey);
+    const currentStars = override?.stars ?? ctx.wizard.state.plan.stars;
+
+    await ctx.reply(
+      `⭐ Stars miqdori\n\nJoriy: <b>${currentStars}⭐</b>\n\nYangi Stars miqdorini kiriting (0 = Stars to'lovi o'chiriladi):`,
+      { parse_mode: 'HTML', ...adminCancelKeyboard() },
+    );
+    return ctx.wizard.next();
+  },
+  async (ctx) => {
+    const stars = Number(ctx.message?.text?.trim());
+    if (!Number.isFinite(stars) || stars < 0) {
+      await ctx.reply('❌ Noto\'g\'ri miqdor. 0 yoki musbat raqam kiriting:', adminCancelKeyboard());
+      return undefined;
+    }
+
+    const { planKey, newPrice, plan } = ctx.wizard.state;
+    const settings = await Settings.getSettings();
+
+    const idx = settings.planPrices?.findIndex((p) => p.key === planKey);
+    if (idx >= 0) {
+      settings.planPrices[idx].price = newPrice;
+      settings.planPrices[idx].stars = stars;
+    } else {
+      settings.planPrices.push({ key: planKey, price: newPrice, stars });
+    }
+    settings.markModified('planPrices');
+    await settings.save();
+
+    await ctx.reply(
+      `✅ <b>${plan.title}</b> narxi yangilandi!\n\n💰 So'm: <b>${newPrice.toLocaleString('ru-RU')} so'm</b>\n⭐ Stars: <b>${stars}⭐</b>`,
+      { parse_mode: 'HTML', ...adminMenuKeyboard() },
+    );
+    return ctx.scene.leave();
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STARS KURS O'ZGARTIRISH
+// ─────────────────────────────────────────────────────────────────────────────
+const editStarsRateScene = new Scenes.WizardScene(
+  SCENES.ADMIN_EDIT_STARS_RATE,
+  async (ctx) => {
+    const rateType = ctx.scene.state.rateType; // 'buy' | 'sell'
+    ctx.wizard.state.rateType = rateType;
+
+    const settings = await Settings.getSettings();
+    const currentRate = rateType === 'buy'
+      ? (settings.starsBuyRate ?? 130)
+      : (settings.starsSellRate ?? 110);
+    const label = rateType === 'buy' ? 'sotib olish' : 'sotish';
+
+    await ctx.reply(
+      `⭐ Stars <b>${label}</b> kursi\n\nJoriy: <b>1⭐ = ${currentRate.toLocaleString('ru-RU')} so'm</b>\n\nYangi kursni kiriting (so'm):`,
+      { parse_mode: 'HTML', ...adminCancelKeyboard() },
+    );
+    return ctx.wizard.next();
+  },
+  async (ctx) => {
+    const rate = Number(ctx.message?.text?.replace(/\s/g, ''));
+    if (!Number.isFinite(rate) || rate <= 0) {
+      await ctx.reply('❌ Noto\'g\'ri kurs. Musbat raqam kiriting:', adminCancelKeyboard());
+      return undefined;
+    }
+
+    const { rateType } = ctx.wizard.state;
+    const settings = await Settings.getSettings();
+    if (rateType === 'buy') {
+      settings.starsBuyRate = rate;
+    } else {
+      settings.starsSellRate = rate;
+    }
+    await settings.save();
+
+    const label = rateType === 'buy' ? 'Sotib olish' : 'Sotish';
+    await ctx.reply(
+      `✅ ${label} kursi yangilandi!\n\n⭐ <b>1⭐ = ${rate.toLocaleString('ru-RU')} so'm</b>`,
+      { parse_mode: 'HTML', ...adminMenuKeyboard() },
+    );
+    return ctx.scene.leave();
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KARTA MA'LUMOTLARI O'ZGARTIRISH
+// ─────────────────────────────────────────────────────────────────────────────
+const editCardScene = new Scenes.WizardScene(
+  SCENES.ADMIN_EDIT_CARD,
+  async (ctx) => {
+    const field = ctx.scene.state.field; // 'number' | 'holder'
+    ctx.wizard.state.field = field;
+
+    const settings = await Settings.getSettings();
+    const label = field === 'number' ? 'Karta raqami' : 'Karta egasi';
+    const current = field === 'number'
+      ? (settings.cardNumber ?? config.payments.cardNumber)
+      : (settings.cardHolder ?? config.payments.cardHolder);
+
+    await ctx.reply(
+      `💳 <b>${label}</b>\n\nJoriy: <code>${current}</code>\n\nYangi qiymatni kiriting:`,
+      { parse_mode: 'HTML', ...adminCancelKeyboard() },
+    );
+    return ctx.wizard.next();
+  },
+  async (ctx) => {
+    const value = ctx.message?.text?.trim();
+    if (!value) {
+      await ctx.reply('❌ Bo\'sh qiymat. Qaytadan kiriting:', adminCancelKeyboard());
+      return undefined;
+    }
+
+    const { field } = ctx.wizard.state;
+    const settings = await Settings.getSettings();
+    if (field === 'number') {
+      settings.cardNumber = value;
+    } else {
+      settings.cardHolder = value;
+    }
+    await settings.save();
+
+    const label = field === 'number' ? 'Karta raqami' : 'Karta egasi';
+    await ctx.reply(
+      `✅ ${label} yangilandi!\n\n<code>${value}</code>`,
+      { parse_mode: 'HTML', ...adminMenuKeyboard() },
+    );
+    return ctx.scene.leave();
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Export
+// ─────────────────────────────────────────────────────────────────────────────
 export const adminScenes = [
   addBalanceScene,
   subBalanceScene,
@@ -237,6 +408,9 @@ export const adminScenes = [
   banSceneWizard,
   unbanSceneWizard,
   replyTicketSceneWizard,
+  editPlanPriceScene,
+  editStarsRateScene,
+  editCardScene,
 ];
 
 export default adminScenes;
