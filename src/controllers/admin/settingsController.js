@@ -27,6 +27,7 @@ const settingsKeyboard = (settings) =>
     [Markup.button.callback('💲 Narxlarni o\'zgartirish', 'settings:prices')],
     [Markup.button.callback('💳 Karta ma\'lumotlarini o\'zgartirish', 'settings:card')],
     [Markup.button.callback('⭐ Stars kursini o\'zgartirish', 'settings:stars_rate')],
+    [Markup.button.callback('🎁 Referal bonus & minimal yechish', 'settings:economy')],
   ]);
 
 /**
@@ -132,6 +133,34 @@ export const showCardMenu = async (ctx) => {
   const keyboard = Markup.inlineKeyboard([
     [Markup.button.callback('💳 Karta raqamini o\'zgartirish', 'settings:edit_card_number')],
     [Markup.button.callback('👤 Karta egasini o\'zgartirish', 'settings:edit_card_holder')],
+    [Markup.button.callback('⬅️ Orqaga', 'settings:back')],
+  ]);
+
+  try {
+    return await ctx.editMessageText(text, { parse_mode: 'HTML', ...keyboard });
+  } catch {
+    return ctx.reply(text, { parse_mode: 'HTML', ...keyboard });
+  }
+};
+
+/**
+ * Iqtisodiy sozlamalar menyusi (referal bonus + minimal yechish).
+ */
+export const showEconomyMenu = async (ctx) => {
+  await ctx.answerCbQuery();
+  const settings = await Settings.getSettings();
+  const referralBonus = settings.referralBonus ?? config.economy.referralBonus;
+  const minWithdrawal = settings.minWithdrawal ?? config.economy.minWithdrawal;
+
+  const text =
+    `💰 <b>Iqtisodiy sozlamalar</b>\n\n` +
+    `🎁 Referal bonus: <b>${formatMoney(referralBonus)}</b>\n` +
+    `💸 Minimal yechish: <b>${formatMoney(minWithdrawal)}</b>\n\n` +
+    `O\'zgartirish uchun tanlang:`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback('🎁 Referal bonusni o\'zgartirish', 'settings:edit_referral_bonus')],
+    [Markup.button.callback('💸 Minimal yechishni o\'zgartirish', 'settings:edit_min_withdrawal')],
     [Markup.button.callback('⬅️ Orqaga', 'settings:back')],
   ]);
 
