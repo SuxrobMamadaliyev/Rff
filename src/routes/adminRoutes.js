@@ -9,7 +9,7 @@ import { listUsers } from '../controllers/admin/usersController.js';
 import { listPayments, listOrders } from '../controllers/admin/listController.js';
 import {
   showSettings, toggleSubscription, toggleBot,
-  showPricesMenu, showCardMenu, showStarsRateMenu,
+  showPricesMenu, showCardMenu, showStarsRateMenu, showEconomyMenu,
 } from '../controllers/admin/settingsController.js';
 import {
   confirmOrder, declineOrder,
@@ -99,6 +99,16 @@ export const registerAdminRoutes = (bot) => {
   bot.action('settings:back', requireAdmin(async (ctx) => {
     await ctx.answerCbQuery();
     return showSettings(ctx);
+  }));
+
+  bot.action('settings:economy', requireAdmin(showEconomyMenu));
+  bot.action('settings:edit_referral_bonus', requireAdmin(async (ctx) => {
+    await ctx.answerCbQuery();
+    return ctx.scene.enter(SCENES.ADMIN_EDIT_REFERRAL_BONUS);
+  }));
+  bot.action('settings:edit_min_withdrawal', requireAdmin(async (ctx) => {
+    await ctx.answerCbQuery();
+    return ctx.scene.enter(SCENES.ADMIN_EDIT_MIN_WITHDRAWAL);
   }));
 
   // Karta o'zgartirish scene'lari
