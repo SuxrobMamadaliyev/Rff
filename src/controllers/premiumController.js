@@ -1,9 +1,9 @@
 import {
-  plansKeyboard,
   paymentMethodsKeyboard,
   cardSentKeyboard,
   mainMenuKeyboard,
 } from '../keyboards/userKeyboards.js';
+import { Markup } from 'telegraf';
 import { orderModerationKeyboard } from '../keyboards/adminKeyboards.js';
 import {
   createOrder,
@@ -11,7 +11,7 @@ import {
   completeOrder,
 } from '../services/orderService.js';
 import { notifyAdmins } from '../services/notifyService.js';
-import { findPlan, escapeHtml, formatMoney } from '../utils/helpers.js';
+import { findPlan, findPlanWithPrices, getAllPlansWithPrices, escapeHtml, formatMoney } from '../utils/helpers.js';
 import {
   PAYMENT_METHODS,
   PAYMENT_METHOD_LABELS,
@@ -21,25 +21,41 @@ import {
   PAYMENT_STATUS,
 } from '../utils/constants.js';
 import Payment from '../models/Payment.js';
+import { Settings } from '../models/index.js';
 import { isAdmin } from '../config/index.js';
 import config from '../config/index.js';
 import messages from '../utils/messages.js';
 import logger from '../utils/logger.js';
 
+/** Dinamik planlar klaviaturasi (Settings narxlari bilan) */
+const buildPlansKeyboard = async () => {
+  const plans = await getAllPlansWithPrices();
+  return Markup.inlineKeyboard([
+    ...plans.map((plan) => [
+      Markup.button.callback(
+        `${plan.title} — ${plan.price.toLocaleString('ru-RU')} so'm`,
+        `buy:${plan.key}`,
+      ),
+    ]),
+    [Markup.button.callback('⬅️ Orqaga', 'menu')],
+  ]);
+};
+
 export const showPlans = async (ctx) => {
   await ctx.answerCbQuery();
+  const keyboard = await buildPlansKeyboard();
   try {
     return await ctx.editMessageText(messages.choosePlan, {
       parse_mode: 'HTML',
-      ...plansKeyboard(),
+      ...keyboard,
     });
   } catch (_err) {
-    return ctx.reply(messages.choosePlan, { parse_mode: 'HTML', ...plansKeyboard() });
+    return ctx.reply(messages.choosePlan, { parse_mode: 'HTML', ...keyboard });
   }
 };
 
 export const showPlanDetails = async (ctx) => {
-  const plan = findPlan(ctx.match[1]);
+  const plan = await findPlanWithPrices(ctx.match[1]);
   if (!plan) {
     await ctx.answerCbQuery('Tarif topilmadi', { show_alert: true });
     return undefined;
@@ -52,11 +68,11 @@ export const showPlanDetails = async (ctx) => {
 };
 
 /**
- * Admin kartasi tanlanganda karta ma'lumotlari ko'rsatiladi
+ * Admin kartasi tanlanganda karta ma'lumotlari ko'rsatiladi (Settings'dan)
  */
 export const handleCardPayment = async (ctx) => {
   const planKey = ctx.match[1];
-  const plan = findPlan(planKey);
+  const plan = await findPlanWithPrices(planKey);
 
   if (!plan) {
     await ctx.answerCbQuery('Tarif topilmadi', { show_alert: true });
@@ -65,13 +81,18 @@ export const handleCardPayment = async (ctx) => {
 
   await ctx.answerCbQuery();
 
+  // Karta ma'lumotlarini Settings'dan olish
+  const settings = await Settings.getSettings();
+  const cardNumber = settings.cardNumber ?? config.payments.cardNumber;
+  const cardHolder = settings.cardHolder ?? config.payments.cardHolder;
+
   const cardText =
     `💳 <b>Admin kartasi orqali to'lash</b>\n\n` +
     `⭐ Tarif: <b>${escapeHtml(plan.title)}</b>\n` +
     `💰 To'lov summasi: <b>${formatMoney(plan.price)}</b>\n\n` +
     `Quyidagi karta raqamiga o'tkazing:\n\n` +
-    `💳 <code>${escapeHtml(config.payments.cardNumber)}</code>\n` +
-    `👤 <b>${escapeHtml(config.payments.cardHolder)}</b>\n\n` +
+    `💳 <code>${escapeHtml(cardNumber)}</code>\n` +
+    `👤 <b>${escapeHtml(cardHolder)}</b>\n\n` +
     `To'lovni amalga oshirgach, <b>✅ Tashladim (chek yuborish)</b> tugmasini bosing.`;
 
   try {
@@ -87,12 +108,9 @@ export const handleCardPayment = async (ctx) => {
   }
 };
 
-/**
- * Foydalanuvchi "Tashladim" tugmasini bosgach, chek (screenshot) so'raladi
- */
 export const handleCardSentCheck = async (ctx) => {
   const planKey = ctx.match[1];
-  const plan = findPlan(planKey);
+  const plan = await findPlanWithPrices(planKey);
 
   if (!plan) {
     await ctx.answerCbQuery('Tarif topilmadi', { show_alert: true });
@@ -100,13 +118,11 @@ export const handleCardSentCheck = async (ctx) => {
   }
 
   await ctx.answerCbQuery('✅ Chek yuborish...');
-
-  // Scene'ga o'tamiz, planKey saqlanadi
   return ctx.scene.enter(SCENES.CARD_CHECK_SCENE, { planKey, plan });
 };
 
 export const handleStarsInvoice = async (ctx) => {
-  const plan = findPlan(ctx.match[1]);
+  const plan = await findPlanWithPrices(ctx.match[1]);
   if (!plan || plan.stars <= 0) {
     await ctx.answerCbQuery('Bu tarif uchun Stars mavjud emas', { show_alert: true });
     return undefined;
@@ -128,11 +144,14 @@ export const handleSuccessfulPayment = async (ctx) => {
   const payment = ctx.message.successful_payment;
   const payload = payment?.invoice_payload || '';
 
-  // ── Stars SOTISH to'lovi (foydalanuvchi Stars'ini botga o'tkazdi) ─────────
+  // Stars SOTISH to'lovi
   if (payload.startsWith('sell_stars:')) {
     const [, amountStr] = payload.split(':');
     const amount = parseInt(amountStr, 10) || payment.total_amount;
-    const totalPrice = amount * STARS_PRICES.SELL_RATE;
+
+    const settings = await Settings.getSettings();
+    const sellRate = settings.starsSellRate ?? STARS_PRICES.SELL_RATE;
+    const totalPrice = amount * sellRate;
 
     const paymentRecord = await Payment.create({
       telegramId: ctx.from.id,
@@ -151,9 +170,9 @@ export const handleSuccessfulPayment = async (ctx) => {
     });
   }
 
-  // ── Premium reja to'lovi (mavjud oqim) ─────────────────────────────────────
+  // Premium reja to'lovi
   const [, planKey] = payload.split(':');
-  const plan = findPlan(planKey);
+  const plan = await findPlanWithPrices(planKey);
   if (!plan) {
     return ctx.reply("✅ To'lov qabul qilindi. Tez orada aktivatsiya qilinadi.");
   }
@@ -170,11 +189,3 @@ export const handleSuccessfulPayment = async (ctx) => {
   );
   return undefined;
 };
-
-
-
-
-
-
-
-
