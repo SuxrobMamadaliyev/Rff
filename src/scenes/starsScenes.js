@@ -1,7 +1,6 @@
 // -----------------------------------------------------------------------------
 // Stars sotib olish va sotish uchun wizard scene'lar.
-// Stars SOTIB OLISH: miqdor → username → karta ma'lumotlari → chek → admin xabari
-// Stars SOTISH: miqdor → tasdiqlash → admin xabari
+// Narxlar Settings'dan dinamik o'qiladi.
 // -----------------------------------------------------------------------------
 import { Scenes } from 'telegraf';
 import { cancelKeyboard, mainMenuKeyboard } from '../keyboards/userKeyboards.js';
@@ -10,17 +9,28 @@ import { isAdmin } from '../config/index.js';
 import config from '../config/index.js';
 import { SCENES, STARS_PRICES } from '../utils/constants.js';
 import { formatMoney, displayName, escapeHtml } from '../utils/helpers.js';
+import { Settings } from '../models/index.js';
+
+/** Settings'dan kurs olish */
+const getRates = async () => {
+  const settings = await Settings.getSettings();
+  return {
+    buyRate: settings.starsBuyRate ?? STARS_PRICES.BUY_RATE,
+    sellRate: settings.starsSellRate ?? STARS_PRICES.SELL_RATE,
+    cardNumber: settings.cardNumber ?? config.payments.cardNumber,
+    cardHolder: settings.cardHolder ?? config.payments.cardHolder,
+  };
+};
 
 // ─── Stars SOTIB OLISH scene ──────────────────────────────────────────────────
 export const starsBuyScene = new Scenes.WizardScene(
   SCENES.STARS_BUY,
 
-  // Step 0: miqdor so'rash (yoki presetAmount bo'lsa o'tkazib yuborish)
   async (ctx) => {
-    // Tugmadan kelgan miqdor (handleBuyStarsAmount orqali)
+    const { buyRate } = await getRates();
     const preset = ctx.scene.state?.presetAmount;
     if (preset && preset > 0) {
-      const totalPrice = preset * STARS_PRICES.BUY_RATE;
+      const totalPrice = preset * buyRate;
       ctx.wizard.state.amount = preset;
       ctx.wizard.state.totalPrice = totalPrice;
       await ctx.reply(
@@ -29,22 +39,21 @@ export const starsBuyScene = new Scenes.WizardScene(
         `<i>(Stars shu akkauntga yuboriladi, masalan: @username)</i>`,
         { parse_mode: 'HTML', ...cancelKeyboard() },
       );
-      // Step 1 ni o'tkazib, step 2 ga o'tamiz
-      ctx.wizard.next(); // step 1
-      return ctx.wizard.next(); // step 2 ga o'tamiz
+      ctx.wizard.next();
+      return ctx.wizard.next();
     }
 
     await ctx.reply(
       `⭐ <b>Stars sotib olish</b>\n\n` +
-      `Narx: <b>1 Stars = ${STARS_PRICES.BUY_RATE.toLocaleString('ru-RU')} so'm</b>\n\n` +
+      `Narx: <b>1 Stars = ${buyRate.toLocaleString('ru-RU')} so'm</b>\n\n` +
       `Nechta Stars sotib olmoqchisiz?\n<i>(Raqam kiriting, masalan: 150)</i>`,
       { parse_mode: 'HTML', ...cancelKeyboard() },
     );
     return ctx.wizard.next();
   },
 
-  // Step 1: miqdor qabul qilish → username so'rash
   async (ctx) => {
+    const { buyRate } = await getRates();
     const text = ctx.message?.text?.trim();
     const amount = parseInt(text, 10);
 
@@ -57,7 +66,7 @@ export const starsBuyScene = new Scenes.WizardScene(
       return undefined;
     }
 
-    const totalPrice = amount * STARS_PRICES.BUY_RATE;
+    const totalPrice = amount * buyRate;
     ctx.wizard.state.amount = amount;
     ctx.wizard.state.totalPrice = totalPrice;
 
@@ -70,7 +79,6 @@ export const starsBuyScene = new Scenes.WizardScene(
     return ctx.wizard.next();
   },
 
-  // Step 2: username qabul qilish → karta ma'lumotlari ko'rsatish
   async (ctx) => {
     const text = ctx.message?.text?.trim();
     if (!text) {
@@ -82,6 +90,7 @@ export const starsBuyScene = new Scenes.WizardScene(
     ctx.wizard.state.username = username;
 
     const { amount, totalPrice } = ctx.wizard.state;
+    const { cardNumber, cardHolder } = await getRates();
 
     await ctx.reply(
       `💳 <b>To'lov ma'lumotlari</b>\n\n` +
@@ -89,15 +98,14 @@ export const starsBuyScene = new Scenes.WizardScene(
       `📱 Username: <b>${escapeHtml(username)}</b>\n` +
       `💰 To'lov summasi: <b>${formatMoney(totalPrice)}</b>\n\n` +
       `Quyidagi karta raqamiga o'tkazing:\n\n` +
-      `💳 <code>${escapeHtml(config.payments.cardNumber)}</code>\n` +
-      `👤 <b>${escapeHtml(config.payments.cardHolder)}</b>\n\n` +
+      `💳 <code>${escapeHtml(cardNumber)}</code>\n` +
+      `👤 <b>${escapeHtml(cardHolder)}</b>\n\n` +
       `To'lovni amalga oshirgach, chek (screenshot) yuboring 👇`,
       { parse_mode: 'HTML', ...cancelKeyboard() },
     );
     return ctx.wizard.next();
   },
 
-  // Step 3: chek (rasm yoki fayl) kutish → admin xabari
   async (ctx) => {
     const hasPhoto = ctx.message?.photo;
     const hasDoc = ctx.message?.document;
@@ -113,7 +121,6 @@ export const starsBuyScene = new Scenes.WizardScene(
     const { amount, totalPrice, username } = ctx.wizard.state;
     const user = ctx.state.user;
 
-    // Foydalanuvchiga tasdiqlash
     await ctx.reply(
       `✅ <b>Chekingiz qabul qilindi!</b>\n\n` +
       `⭐ Miqdor: <b>${amount} Stars</b>\n` +
@@ -123,7 +130,6 @@ export const starsBuyScene = new Scenes.WizardScene(
       { parse_mode: 'HTML', ...mainMenuKeyboard(isAdmin(ctx.from.id)) },
     );
 
-    // Adminga matn
     const adminText =
       `⭐ <b>Stars sotib olish so'rovi</b>\n\n` +
       `👤 Foydalanuvchi: ${displayName(user)} (<code>${user.telegramId}</code>)\n` +
@@ -134,7 +140,6 @@ export const starsBuyScene = new Scenes.WizardScene(
 
     await notifyAdmins(ctx.telegram, adminText);
 
-    // Adminga chek yuborish
     try {
       if (hasPhoto) {
         const fileId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
@@ -170,9 +175,10 @@ export const starsSellScene = new Scenes.WizardScene(
   SCENES.STARS_SELL,
 
   async (ctx) => {
+    const { sellRate } = await getRates();
     await ctx.reply(
       `💰 <b>Stars sotish</b>\n\n` +
-      `Narx: <b>1 Stars = ${STARS_PRICES.SELL_RATE.toLocaleString('ru-RU')} so'm</b>\n\n` +
+      `Narx: <b>1 Stars = ${sellRate.toLocaleString('ru-RU')} so'm</b>\n\n` +
       `Nechta Stars sotmoqchisiz? (raqam kiriting, masalan: 150)`,
       { parse_mode: 'HTML', ...cancelKeyboard() },
     );
@@ -180,6 +186,7 @@ export const starsSellScene = new Scenes.WizardScene(
   },
 
   async (ctx) => {
+    const { sellRate } = await getRates();
     const text = ctx.message?.text?.trim();
     const amount = parseInt(text, 10);
 
@@ -192,7 +199,7 @@ export const starsSellScene = new Scenes.WizardScene(
       return undefined;
     }
 
-    const totalPrice = amount * STARS_PRICES.SELL_RATE;
+    const totalPrice = amount * sellRate;
 
     await ctx.reply(
       `💰 <b>Stars sotish</b>\n\n` +
