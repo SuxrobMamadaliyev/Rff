@@ -3,21 +3,11 @@
 // -----------------------------------------------------------------------------
 import config from '../config/index.js';
 
-/**
- * Format a number as a money string with thousands separators + currency label.
- * @param {number} amount
- * @returns {string}
- */
 export const formatMoney = (amount) => {
   const value = Number(amount || 0);
   return `${value.toLocaleString('ru-RU')} ${config.economy.currency}`;
 };
 
-/**
- * Format a Date as a human readable string (Tashkent friendly, 24h).
- * @param {Date|string|number} date
- * @returns {string}
- */
 export const formatDate = (date) => {
   if (!date) return '-';
   const d = new Date(date);
@@ -31,19 +21,9 @@ export const formatDate = (date) => {
   });
 };
 
-/**
- * Build the referral deep-link for a given Telegram id.
- * @param {number|string} telegramId
- * @returns {string}
- */
 export const buildReferralLink = (telegramId) =>
   `https://t.me/${config.bot.username}?start=${telegramId}`;
 
-/**
- * Escape characters that are unsafe inside Telegram HTML parse mode.
- * @param {string} text
- * @returns {string}
- */
 export const escapeHtml = (text) =>
   String(text ?? '')
     .replace(/&/g, '&amp;')
@@ -51,38 +31,63 @@ export const escapeHtml = (text) =>
     .replace(/>/g, '&gt;');
 
 /**
- * Find a configured plan by its key.
- * @param {string} key
- * @returns {import('../config/index.js').default['plans'][number]|undefined}
+ * Statik config'dan plan topish (fallback uchun).
  */
 export const findPlan = (key) => config.plans.find((plan) => plan.key === key);
 
 /**
- * Render a username/full name safely for display.
- * @param {{username?:string, firstName?:string, lastName?:string, telegramId?:number}} user
- * @returns {string}
+ * Settings'dan plan narxini olish (DB override yoki config fallback).
+ * Settings modeli dinamik import qilinadi — circular dependency oldini oladi.
  */
+export const findPlanWithPrices = async (key) => {
+  const plan = config.plans.find((p) => p.key === key);
+  if (!plan) return undefined;
+
+  try {
+    const { Settings } = await import('../models/index.js');
+    const settings = await Settings.getSettings();
+    const override = settings.planPrices?.find((p) => p.key === key);
+    return {
+      ...plan,
+      price: override?.price ?? plan.price,
+      stars: override?.stars ?? plan.stars,
+    };
+  } catch {
+    return plan;
+  }
+};
+
+/**
+ * Barcha planlarni Settings override bilan qaytaradi.
+ */
+export const getAllPlansWithPrices = async () => {
+  try {
+    const { Settings } = await import('../models/index.js');
+    const settings = await Settings.getSettings();
+    return config.plans.map((plan) => {
+      const override = settings.planPrices?.find((p) => p.key === plan.key);
+      return {
+        ...plan,
+        price: override?.price ?? plan.price,
+        stars: override?.stars ?? plan.stars,
+      };
+    });
+  } catch {
+    return config.plans;
+  }
+};
+
+export const parseTelegramId = (text) => {
+  if (!text) return null;
+  const num = Number(text.trim());
+  return Number.isInteger(num) && num > 0 ? num : null;
+};
+
 export const displayName = (user) => {
-  if (!user) return 'Foydalanuvchi';
-  if (user.username) return `@${user.username}`;
-  const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+  if (!user) return 'Noma\'lum';
+  const parts = [user.firstName, user.lastName].filter(Boolean);
+  const name = parts.join(' ').trim();
   return name || `ID ${user.telegramId}`;
 };
 
-/**
- * Pause helper used to throttle bulk broadcasts and respect Telegram limits.
- * @param {number} ms
- * @returns {Promise<void>}
- */
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
- * Extract a Telegram id from raw text input (accepts plain id or @username
- * is rejected here - callers that need username lookup handle it separately).
- * @param {string} text
- * @returns {number|null}
- */
-export const parseTelegramId = (text) => {
-  const value = Number(String(text || '').trim());
-  return Number.isInteger(value) && value > 0 ? value : null;
-};
