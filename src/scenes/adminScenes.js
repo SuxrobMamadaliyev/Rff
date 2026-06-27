@@ -397,6 +397,55 @@ const editCardScene = new Scenes.WizardScene(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// IQTISODIY SOZLAMALAR — Referal bonus va minimal yechish
+// ─────────────────────────────────────────────────────────────────────────────
+const economyScene = (sceneId, field, label) =>
+  new Scenes.WizardScene(
+    sceneId,
+    async (ctx) => {
+      const settings = await Settings.getSettings();
+      const current = field === 'referralBonus'
+        ? (settings.referralBonus ?? config.economy.referralBonus)
+        : (settings.minWithdrawal ?? config.economy.minWithdrawal);
+
+      await ctx.reply(
+        `💰 <b>${label}</b>\n\nJoriy qiymat: <b>${current.toLocaleString('ru-RU')} so'm</b>\n\nYangi qiymatni kiriting (so'm):`,
+        { parse_mode: 'HTML', ...adminCancelKeyboard() },
+      );
+      return ctx.wizard.next();
+    },
+    async (ctx) => {
+      const value = Number(ctx.message?.text?.replace(/\s/g, ''));
+      if (!Number.isFinite(value) || value < 0) {
+        await ctx.reply('❌ Noto\'g\'ri qiymat. 0 yoki musbat raqam kiriting:', adminCancelKeyboard());
+        return undefined;
+      }
+
+      const settings = await Settings.getSettings();
+      settings[field] = value;
+      await settings.save();
+
+      await ctx.reply(
+        `✅ ${label} yangilandi!\n\n<b>${value.toLocaleString('ru-RU')} so'm</b>`,
+        { parse_mode: 'HTML', ...adminMenuKeyboard() },
+      );
+      return ctx.scene.leave();
+    },
+  );
+
+const editReferralBonusScene = economyScene(
+  SCENES.ADMIN_EDIT_REFERRAL_BONUS,
+  'referralBonus',
+  'Referal bonus',
+);
+
+const editMinWithdrawalScene = economyScene(
+  SCENES.ADMIN_EDIT_MIN_WITHDRAWAL,
+  'minWithdrawal',
+  'Minimal yechish miqdori',
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Export
 // ─────────────────────────────────────────────────────────────────────────────
 export const adminScenes = [
@@ -411,6 +460,8 @@ export const adminScenes = [
   editPlanPriceScene,
   editStarsRateScene,
   editCardScene,
+  editReferralBonusScene,
+  editMinWithdrawalScene,
 ];
 
 export default adminScenes;
