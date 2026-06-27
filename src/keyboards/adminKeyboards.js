@@ -4,9 +4,6 @@
 import { Markup } from 'telegraf';
 import { ADMIN_BUTTONS, ACTIONS } from '../utils/constants.js';
 
-/**
- * Admin reply keyboard (admin panel).
- */
 export const adminMenuKeyboard = () =>
   Markup.keyboard([
     [ADMIN_BUTTONS.STATS, ADMIN_BUTTONS.USERS],
@@ -15,12 +12,10 @@ export const adminMenuKeyboard = () =>
     [ADMIN_BUTTONS.FORWARD, ADMIN_BUTTONS.BAN],
     [ADMIN_BUTTONS.UNBAN, ADMIN_BUTTONS.PAYMENTS],
     [ADMIN_BUTTONS.ORDERS, ADMIN_BUTTONS.SETTINGS],
+    [ADMIN_BUTTONS.PRICES, ADMIN_BUTTONS.CARD_INFO],
     [ADMIN_BUTTONS.EXIT],
   ]).resize();
 
-/**
- * Inline keyboard attached to a new order notification.
- */
 export const orderModerationKeyboard = (orderId) =>
   Markup.inlineKeyboard([
     [
@@ -29,9 +24,6 @@ export const orderModerationKeyboard = (orderId) =>
     ],
   ]);
 
-/**
- * Inline keyboard attached to a withdrawal request notification.
- */
 export const withdrawalModerationKeyboard = (withdrawalId) =>
   Markup.inlineKeyboard([
     [
@@ -40,9 +32,6 @@ export const withdrawalModerationKeyboard = (withdrawalId) =>
     ],
   ]);
 
-/**
- * Inline keyboard attached to a ticket notification.
- */
 export const ticketModerationKeyboard = (ticketId) =>
   Markup.inlineKeyboard([
     [
@@ -51,8 +40,5 @@ export const ticketModerationKeyboard = (ticketId) =>
     ],
   ]);
 
-/**
- * Cancel keyboard for admin scenes.
- */
 export const adminCancelKeyboard = () =>
   Markup.inlineKeyboard([[Markup.button.callback('❌ Bekor qilish', ACTIONS.CANCEL)]]);
